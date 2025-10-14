@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="id">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PoC: open+close popup (TEST ONLY)</title>
-<style>body{font-family:system-ui;padding:18px;background:#f6f8fb}button{padding:10px 14px;border-radius:8px;background:#0b66ff;color:#fff;border:0;cursor:pointer}</style>
+<title>PoC: hidden iframe load (TEST ONLY)</title>
+<style>body{font-family:system-ui;padding:18px;background:#fff}button{padding:8px 12px;background:#0b66ff;color:#fff;border:0;border-radius:6px}</style>
 </head>
 <body>
-  <h3>PoC — open then close (TEST ONLY)</h3>
-  <p>Tekan tombol untuk buka google lalu tutup otomatis. Hanya untuk pengujian internal.</p>
+  <h3>PoC — hidden iframe load then remove (TEST ONLY)</h3>
+  <p>Jika target menolak embedding (X-Frame-Options), iframe akan gagal — itu normal.</p>
 
-  <label>Delay close (ms): <input id="delay" type="number" value="150" style="width:80px"></label>
+  <label>Delay remove (ms): <input id="delay" type="number" value="200" style="width:80px"></label>
   <button id="run">Run</button>
   <pre id="log">LOG: ready</pre>
 
@@ -18,25 +18,28 @@ const logEl = document.getElementById('log');
 function log(s){ logEl.textContent += '\\n' + s; logEl.scrollTop = 1e9; }
 
 runBtn.addEventListener('click', () => {
-  const delay = Math.max(0, parseInt(document.getElementById('delay').value||"150",10));
-  log('[*] Attempting popup open → google');
-  try {
-    // buka popup; gunakan target name unik jika ingin reuse: 'x' atau '_blank' jika ingin new
-    const w = window.open('https://www.google.com/', '_blank', 'noopener');
-    if (!w) { log('[!] popup blocked (window.open returned null)'); alert('Popup blocked — enable popups for this site'); return; }
-    log('[+] popup opened');
-    // tutup popup setelah delay
-    setTimeout(() => {
-      try {
-        w.close();
-        log(`[+] popup closed after ${delay} ms`);
-      } catch(e) {
-        log('[!] failed to close popup: ' + e);
-      }
-    }, delay);
-  } catch (e) {
-    log('[!] window.open error: ' + e);
-  }
+  const delay = Math.max(0, parseInt(document.getElementById('delay').value||"200",10));
+  log('[*] Creating hidden iframe and navigating to google...');
+  const ifr = document.createElement('iframe');
+  ifr.style.width = '1px';
+  ifr.style.height = '1px';
+  ifr.style.position = 'fixed';
+  ifr.style.left = '-9999px';
+  ifr.style.top = '-9999px';
+  ifr.sandbox = ''; // optional: try without sandbox first; sandbox may prevent loads
+  document.body.appendChild(ifr);
+  // set src after append to trigger navigation
+  ifr.src = 'https://www.google.com/';
+  log('[+] iframe appended and src set to google');
+
+  setTimeout(() => {
+    try {
+      document.body.removeChild(ifr);
+      log(`[+] iframe removed after ${delay} ms`);
+    } catch(e) {
+      log('[!] iframe remove failed: ' + e);
+    }
+  }, delay);
 });
 </script>
 </body>
