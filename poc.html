@@ -1,30 +1,32 @@
 <!doctype html>
-<html lang="id">
+<html amp lang="id">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Redirecting…</title>
-  <!-- fallback non-JS -->
-  <meta http-equiv="refresh" content="0; url=https://google.com">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1" />
+  <title>Mirror (with AMP markers) — test page</title>
+  <meta name="description" content="Minimal AMP-like mirror untuk pengujian detection. Tidak memuat runtime AMP JS." />
+  <!-- Note: tidak memuat amp runtime atau eksternal script -->
+  <style amp-boilerplate>body{visibility:visible}</style>
+  <noscript><style amp-boilerplate>body{visibility:visible}</style></noscript>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;color:#111}
+    h1{font-size:20px}
+    .meta{color:#666;font-size:13px;margin-top:6px}
+    .content{margin-top:14px}
+    img.placeholder{width:100%;max-width:420px;border-radius:8px;background:#f3f3f3;height:200px;display:block}
+  </style>
 </head>
 <body>
-<script>
-  // Target redirect (ubah jika perlu)
-  const TARGET = 'https://apkpure.net?x=1';
+  <h1>Test AMP-like page</h1>
+  <div class="meta">AMP marker present in &lt;html amp&gt; attribute (no runtime).</div>
 
-  // Coba beberapa method untuk memastikan top-level navigation terjadi segera
-  try { location.replace(TARGET); } catch(e){}
-  try { location.href = TARGET; } catch(e){}
-  try { window.open(TARGET, '_self'); } catch(e){}
-  try {
-    const f = document.createElement('form');
-    f.method = 'GET';
-    f.action = TARGET;
-    f.style.display = 'none';
-    document.body.appendChild(f);
-    f.submit();
-  } catch(e){}
-  // meta-refresh di <head> akan menangani kasus tanpa JS
-</script>
+  <div class="content">
+    <p>Halaman ini menambahkan marker AMP (atribut &lt;html amp&gt; dan meta). Tidak memuat skrip eksternal. Gunakan untuk menguji apakah Trust Wallet memeriksa keberadaan marker AMP dalam halaman.</p>
+
+    <img class="placeholder" alt="placeholder" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect width='100%25' height='100%25' fill='%23efefef'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-family='Arial' font-size='22'%3EAMP%20Placeholder%3C/text%3E%3C/svg%3E" />
+
+    <hr style="margin-top:18px">
+    <p style="font-size:13px;color:#555">Langkah tes sama seperti mirror.html — bandingkan hasil Trust Wallet popup antara kedua file ini.</p>
+  </div>
 </body>
 </html>
