@@ -1,9 +1,28 @@
 <!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Direct download</title></head>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Download attribution PoC</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:32px}
+    h1{font-size:20px}
+    .btn{display:block;margin:10px 0;padding:10px 14px;background:#0366d6;color:#fff;text-decoration:none;border-radius:6px;width:320px}
+    small{display:block;color:#666;margin-top:6px}
+  </style>
+</head>
 <body>
-  <h2>Direct anchor</h2>
-  <p><a href="/test.apk" download>Download test.apk (direct)</a></p>
-  <p>Expected: browser usually shows origin = <code>mohammedalqi.github.io</code>.</p>
+  <h1>Download attribution PoC</h1>
+  <p>Upload <code>test.apk</code> ke root repo. Buka tiap link di browser berbeda (Chrome, Firefox, Safari, Edge, Android) lalu screenshot UI download.</p>
+
+  <a class="btn" href="direct.html" target="_blank">Direct link (anchor)</a>
+  <a class="btn" href="open_then_open.html" target="_blank">Open → then open file (your original PoC)</a>
+  <a class="btn" href="fetch_blob.html" target="_blank">Fetch → blob → auto download</a>
+  <a class="btn" href="noreferrer_open.html" target="_blank">Open with rel="noreferrer"</a>
+  <a class="btn" href="meta_redirect.html" target="_blank">Meta-refresh / client redirect</a>
+  <a class="btn" href="data_uri.html" target="_blank">Download via data: URI (small file)</a>
+
+  <hr>
+  <p><strong>Notes:</strong> untuk 302 server-side nyata, lihat file <code>server-302.js</code> di README (Node.js example).</p>
 </body>
 </html>
