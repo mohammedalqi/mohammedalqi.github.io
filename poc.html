@@ -1,32 +1,69 @@
 <!doctype html>
-<html amp lang="id">
+<html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1" />
-  <title>Mirror (with AMP markers) — test page</title>
-  <meta name="description" content="Minimal AMP-like mirror untuk pengujian detection. Tidak memuat runtime AMP JS." />
-  <!-- Note: tidak memuat amp runtime atau eksternal script -->
-  <style amp-boilerplate>body{visibility:visible}</style>
-  <noscript><style amp-boilerplate>body{visibility:visible}</style></noscript>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Iframe PoC → APKPure</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;color:#111}
-    h1{font-size:20px}
-    .meta{color:#666;font-size:13px;margin-top:6px}
-    .content{margin-top:14px}
-    img.placeholder{width:100%;max-width:420px;border-radius:8px;background:#f3f3f3;height:200px;display:block}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:18px}
+    .box{border:1px solid #ddd;padding:12px;border-radius:8px}
+    iframe{width:100%;height:70vh;border:0}
+    .hidden{display:none}
+    .warn{color:#a33}
+    .ok{color:#2a7}
   </style>
 </head>
 <body>
-  <h1>Test AMP-like pages</h1>
-  <div class="meta">AMP marker present in &lt;html amp&gt; attribute (no runtime).</div>
+  <h2>Iframe PoC — attempt to embed apkpure</h2>
+  <div class="box" id="wrap">
+    <div id="iframeWrapper">
+      <iframe id="theFrame" src="https://apkpure.net/id/amp"></iframe>
+    </div>
 
-  <div class="content">
-    <p>Halaman ini menambahkan marker AMP (atribut &lt;html amp&gt; dan meta). Tidak memuat skrip eksternal. Gunakan untuk menguji apakah Trust Wallet memeriksa keberadaan marker AMP dalam halaman.</p>
+    <div id="fallback" class="hidden">
+      <p class="warn"><strong>Embedding blocked</strong> — site refused to be framed (X-Frame-Options / CSP).</p>
+      <p>Fallback: <a id="openNew" href="https://apkpure.net/id/amp" target="_blank" rel="noopener">Open APKPure in new tab</a></p>
+      <p>Atau gunakan server-side proxy (lihat notes) — <em>ingat legal/ethical risks</em>.</p>
+    </div>
 
-    <img class="placeholder" alt="placeholder" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect width='100%25' height='100%25' fill='%23efefef'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-family='Arial' font-size='22'%3EAMP%20Placeholder%3C/text%3E%3C/svg%3E" />
-
-    <hr style="margin-top:18px">
-    <p style="font-size:13px;color:#555">Langkah tes sama seperti mirror.html — bandingkan hasil Trust Wallet popup antara kedua file ini.</p>
+    <p id="note" class="small">Console will show framing errors if blocked. If iframe appears blank or error, framing is denied.</p>
   </div>
+
+<script>
+const frame = document.getElementById('theFrame');
+const fallback = document.getElementById('fallback');
+
+// Heuristic: beberapa browser tidak fire onload if blocked; we use a short timeout + check contentWindow
+frame.addEventListener('load', () => {
+  // try to access frame document (will throw cross-origin error normally)
+  try {
+    // if same-origin (very unlikely), accessible -> treat as OK
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    console.log('iframe loaded, doc ready', doc && doc.location && doc.location.href);
+    // still show frame; nothing to do
+  } catch (e) {
+    // cross-origin but load fired — the frame probably loaded remote site successfully
+    console.log('iframe load fired (cross-origin)', e);
+    // still show frame; nothing to do
+  }
+});
+
+// fallback detection: if after X ms iframe is about:blank or has 0 height, assume blocked
+setTimeout(()=>{
+  // Many blocked iframes remain with about:blank location OR throw in console.
+  // We can't reliably read cross-origin contents; use visual check.
+  const rect = frame.getBoundingClientRect();
+  const blank = (frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href === 'about:blank');
+  if (rect.width < 10 || rect.height < 10 || blank) {
+    document.getElementById('iframeWrapper').style.display = 'none';
+    fallback.classList.remove('hidden');
+    // set fallback link for convenience
+    document.getElementById('openNew').href = frame.src;
+    console.warn('Iframe likely blocked by X-Frame-Options / CSP.');
+  } else {
+    console.log('Iframe appears visible; may be embedded successfully.');
+  }
+}, 1000);
+</script>
 </body>
 </html>
