@@ -1,36 +1,9 @@
-
+<!doctype html>
 <html>
- <head> 
-  <meta charset="utf-8">
-<style>
-.button {
-  background-color: #4CAF50;
-  border: none;
-  color: white;
-  padding: 15px 32px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  margin: 4px 2px;
-  cursor: pointer;
-}
-</style>
- </head> 
- <body> 
- <button id="dl">Fetch & Download</button>
-<script>
-document.getElementById('dl').addEventListener('click', async () => {
-  const res = await fetch('https://mohammedalqi.github.io/test.apk');
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'test.apk';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=> { URL.revokeObjectURL(url); a.remove(); }, 30000);
-});
-</script>
- </body>
+<head><meta charset="utf-8"><title>Direct download</title></head>
+<body>
+  <h2>Direct anchor</h2>
+  <p><a href="/test.apk" download>Download test.apk (direct)</a></p>
+  <p>Expected: browser usually shows origin = <code>mohammedalqi.github.io</code>.</p>
+</body>
 </html>
