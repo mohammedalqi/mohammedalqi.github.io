@@ -1,9 +1,11 @@
+<!-- meta_redirect.html -->
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><title>noreferrer open</title></head>
+<head><meta charset="utf-8"><title>Meta redirect</title></head>
 <body>
-  <h2>Open with rel="noreferrer"</h2>
-  <p><a id="a" href="/test.apk" target="_blank" rel="noreferrer">Open download (rel=noreferrer)</a></p>
-  <p>Rem: rel="noreferrer" affects Referer header but not necessarily download UI origin.</p>
+  <h2>Meta-refresh redirect (client-side)</h2>
+  <p>This page will redirect to <code>/redirect-to-file.html</code> which then links to the file.</p>
+  <p><meta http-equiv="refresh" content="3;url=redirect-to-file.html"></p>
+  <p>Redirecting in 3s...</p>
 </body>
 </html>
