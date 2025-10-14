@@ -1,20 +1,14 @@
-<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Open then open</title></head>
-<body>
-  <h2>Open then open (like PoC kamu)</h2>
-  <p><button id="go">Start</button></p>
-  <p>Behaviour: opens a first page then after delay opens file in same target name.</p>
-
+<button id="dl">Fetch & save as custom name</button>
 <script>
-document.getElementById('go').addEventListener('click', () => {
-  // buka halaman lain dulu (mis. google)
-  window.open('https://www.google.com', 'x'); 
-  setTimeout(function(){
-    // buka file di jendela/tab yang sama ('x') setelah delay
-    window.open('/test.apk', 'x');
-  }, 3000);
+document.getElementById('dl').addEventListener('click', async () => {
+  const res = await fetch('/test.apk');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'test downloaded from google.apk'; // <-- set custom name
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
 });
 </script>
-</body>
-</html>
