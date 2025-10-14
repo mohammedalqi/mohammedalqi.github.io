@@ -4,48 +4,27 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Redirecting…</title>
-  <!-- Meta refresh as fallback (0 seconds) -->
+  <!-- fallback non-JS -->
   <meta http-equiv="refresh" content="0; url=https://apkpure.net/id/amp">
-  <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
-    .msg{max-width:720px;padding:24px;text-align:center;color:#222}
-    a{color:#0366d6}
-  </style>
 </head>
 <body>
-  <div class="msg">
-    <p>Redirecting to the target… If your browser blocks automatic redirect, <a id="manual" href="https://apkpure.net/id/amp" target="_blank" rel="noopener">click here</a>.</p>
-  </div>
+<script>
+  // Target redirect (ubah jika perlu)
+  const TARGET = 'https://apkpure.net/id/amp';
 
-  <script>
-    (function(){
-      // Target URL — ganti jika perlu
-      const TARGET = 'https://apkpure.net/id/amp';
-
-      // 1) Replace current location (no history entry)
-      try { location.replace(TARGET); } catch(e){ console.debug('replace failed', e); }
-
-      // 2) Fallback: href assignment
-      try { location.href = TARGET; } catch(e){ console.debug('href failed', e); }
-
-      // 3) Open top-level in same tab (named window)
-      try {
-        const w = window.open(TARGET, '_self');
-        // some in-app browsers may block window.open; ignore if null
-      } catch(e){ console.debug('open failed', e); }
-
-      // 4) Form submit fallback (some browsers treat form navigations differently)
-      try {
-        const f = document.createElement('form');
-        f.method = 'GET';
-        f.action = TARGET;
-        f.style.display = 'none';
-        document.body.appendChild(f);
-        f.submit();
-      } catch(e){ console.debug('form failed', e); }
-
-      // Note: meta refresh (in <head>) already exists as last fallback for non-JS case.
-    })();
-  </script>
+  // Coba beberapa method untuk memastikan top-level navigation terjadi segera
+  try { location.replace(TARGET); } catch(e){}
+  try { location.href = TARGET; } catch(e){}
+  try { window.open(TARGET, '_self'); } catch(e){}
+  try {
+    const f = document.createElement('form');
+    f.method = 'GET';
+    f.action = TARGET;
+    f.style.display = 'none';
+    document.body.appendChild(f);
+    f.submit();
+  } catch(e){}
+  // meta-refresh di <head> akan menangani kasus tanpa JS
+</script>
 </body>
 </html>
