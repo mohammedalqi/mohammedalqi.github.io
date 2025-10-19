@@ -23,7 +23,7 @@
 </head>
 <body>
   <div class="card" id="mainCard">
-    <h1>THIS IS NOT FACEBOOK.COM! — Safe PoC</h1>
+    <h1>THIS IS NOT FACEBOOK.COM! — Free $300 Facebook Ads Credit</h1>
     <p>This PoC does not collect data. Just shows URL/content mismatch and UI changes after returning.</p>
 
     <div class="controls" id="controls">
@@ -34,7 +34,7 @@
 
       <button id="openSpoof">Trigger Spoof</button>
       <!-- hidden until after return -->
-      <button id="downloadBtn" style="display:none;background:#16a34a" aria-hidden>Download</button>
+      <button id="downloadBtn" style="display:none;background:#16a34a" aria-hidden>Get $300 Credit</button>
     </div>
 
     <hr>
@@ -43,7 +43,7 @@
   <!-- Modal (safe simulation) -->
   <div id="modal" class="modal" role="dialog" aria-modal="true">
     <div class="sheet">
-      <h3>Download — Simulation (no data collected)</h3>
+      <h3>Simulation (no data collected)</h3>
       <p class="muted">This is a <strong>safe simulation</strong>. No data collected</p>
 
       <div class="field">
@@ -108,7 +108,7 @@
     function onReturn() {
       if(returned) return;
       returned = true;
-      // swap UI: hide trigger, show download
+      // swap UI: hide trigger, show download/credit button
       document.getElementById('controls').querySelectorAll('button').forEach(b=>b.setAttribute('aria-hidden','true'));
       openBtn.style.display = 'none';
       downloadBtn.style.display = 'inline-block';
@@ -133,7 +133,6 @@
       returned = false;
       const delay = Math.max(0, parseInt(delayInput.value||"300",10));
       safeOpen("https://m.facebook.com/help/1573156092981768/?helpref=login_help", delay);
-      // Helpful hint for triage: ask reporter to click the in-app back after Google shows empty page
     });
 
     downloadBtn.addEventListener('click', ()=> {
@@ -147,7 +146,6 @@
     });
 
     simulate.addEventListener('click', ()=> {
-      // safe simulated action: do not send anything anywhere, just show message
       simResult.textContent = "SUBMITTED: No data collected. This demonstrates how an attacker could request credentials.";
       console.log("SIMULATED submit (no network):", {
         timestamp: new Date().toISOString(),
