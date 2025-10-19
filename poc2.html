@@ -14,7 +14,6 @@
     button{padding:8px 12px;border-radius:8px;border:0;background:#0b66ff;color:#fff;cursor:pointer}
     button.warn{background:#ff6b6b}
     small{color:#666}
-    pre.evidence{background:#0f1724;color:#fff;padding:12px;border-radius:6px;overflow:auto}
     /* modal */
     .modal { position: fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.5) }
     .sheet { background:#fff;padding:18px;border-radius:8px; max-width:400px; width:90% }
@@ -24,8 +23,8 @@
 </head>
 <body>
   <div class="card" id="mainCard">
-    <h1>THIS IS NOT GOOGLE.COM! — Safe PoC</h1>
-    <p>PoC ini <strong>tidak</strong> mengumpulkan data. Hanya menunjukkan URL/content mismatch dan perubahan UI setelah kembali.</p>
+    <h1>THIS IS NOT FACEBOOK.COM! — Safe PoC</h1>
+    <p>This PoC does not collect data. Just shows URL/content mismatch and UI changes after returning.</p>
 
     <div class="controls" id="controls">
       <label>
@@ -36,27 +35,24 @@
       <button id="openSpoof">Trigger Spoof</button>
       <!-- hidden until after return -->
       <button id="downloadBtn" style="display:none;background:#16a34a" aria-hidden>Download</button>
-      <button id="evidenceBtn" style="background:#6b7280">Show Evidence</button>
     </div>
 
     <hr>
-    <small class="muted">Evidence (copy/paste ke laporan):</small>
-    <pre class="evidence" id="evidenceArea">Press "Show Evidence" after reproduction to capture navigator & location info.</pre>
   </div>
 
   <!-- Modal (safe simulation) -->
   <div id="modal" class="modal" role="dialog" aria-modal="true">
     <div class="sheet">
       <h3>Download — Simulation (no data collected)</h3>
-      <p class="muted">This is a <strong>safe simulation</strong>. Do NOT enter real credentials. Fields are disabled to prevent collection.</p>
+      <p class="muted">This is a <strong>safe simulation</strong>. No data collected</p>
 
       <div class="field">
-        <label>Username (disabled)</label>
-        <input disabled placeholder="example@demo.local">
+        <label>Username</label>
+        <input placeholder="example@gmail.com">
       </div>
       <div class="field">
-        <label>Password (disabled)</label>
-        <input type="password" disabled placeholder="••••••••">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••">
       </div>
 
       <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -73,8 +69,6 @@
     const openBtn = document.getElementById('openSpoof');
     const downloadBtn = document.getElementById('downloadBtn');
     const delayInput = document.getElementById('delay');
-    const evidenceBtn = document.getElementById('evidenceBtn');
-    const evidenceArea = document.getElementById('evidenceArea');
     const modal = document.getElementById('modal');
     const closeModal = document.getElementById('closeModal');
     const simulate = document.getElementById('simulate');
@@ -118,8 +112,6 @@
       document.getElementById('controls').querySelectorAll('button').forEach(b=>b.setAttribute('aria-hidden','true'));
       openBtn.style.display = 'none';
       downloadBtn.style.display = 'inline-block';
-      // Add evidence note
-      console.log("User returned to PoC tab/window. Time since open (ms):", Date.now()-openedAt);
     }
 
     // Two strategies:
@@ -140,7 +132,7 @@
     openBtn.addEventListener('click', ()=> {
       returned = false;
       const delay = Math.max(0, parseInt(delayInput.value||"300",10));
-      safeOpen("https://www.google.com/", delay);
+      safeOpen("https://www.facebook.com/", delay);
       // Helpful hint for triage: ask reporter to click the in-app back after Google shows empty page
       alert("PoC opened external page. Please click Back in the in-app browser (or return to this tab) after verifying the external page.");
     });
@@ -157,29 +149,11 @@
 
     simulate.addEventListener('click', ()=> {
       // safe simulated action: do not send anything anywhere, just show message
-      simResult.textContent = "SIMULATION: No data collected. This demonstrates how an attacker could request credentials — DO NOT ENTER REAL DATA.";
+      simResult.textContent = "SUBMITTED: No data collected. This demonstrates how an attacker could request credentials.";
       console.log("SIMULATED submit (no network):", {
         timestamp: new Date().toISOString(),
         note: "No data was collected in this PoC"
       });
-    });
-
-    evidenceBtn.addEventListener('click', ()=> {
-      const info = {
-        now: new Date().toISOString(),
-        href: location.href,
-        origin: location.origin,
-        baseURI: document.baseURI,
-        referrer: document.referrer,
-        userAgent: navigator.userAgent,
-        inIframe: window.top !== window.self,
-        visibilityState: document.visibilityState,
-        historyLength: history.length,
-        historyState: history.state,
-        openedAt
-      };
-      evidenceArea.textContent = JSON.stringify(info, null, 2);
-      console.log("Evidence snapshot:", info);
     });
 
     // close modal by clicking outside
