@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Google</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 24px;
+    padding: 32px 16px;
+  }
+
+  /* Mimic a Google-like page so the context looks real */
+  .google-logo {
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -2px;
+  }
+  .google-logo span:nth-child(1) { color: #4285F4; }
+  .google-logo span:nth-child(2) { color: #EA4335; }
+  .google-logo span:nth-child(3) { color: #FBBC05; }
+  .google-logo span:nth-child(4) { color: #4285F4; }
+  .google-logo span:nth-child(5) { color: #34A853; }
+  .google-logo span:nth-child(6) { color: #EA4335; }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    border: 1px solid #dfe1e5;
+    border-radius: 24px;
+    padding: 10px 16px;
+    width: 100%;
+    max-width: 400px;
+    gap: 10px;
+    box-shadow: 0 1px 6px rgba(32,33,36,.1);
+  }
+  .search-box input {
+    border: none;
+    outline: none;
+    font-size: 16px;
+    flex: 1;
+    background: transparent;
+  }
+  .search-icon { color: #9aa0a6; font-size: 18px; }
+
+  .go-btn {
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── Arc Search–style bottom address bar ── */
+  .fake-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 28px);
+    max-width: 480px;
+    background: #1c1c1e;           /* Arc dark pill */
+    border-radius: 16px 16px 0 0;  /* flush to bottom on iOS */
+    padding: 10px 16px 20px;       /* extra bottom padding for home indicator */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease;
+    box-shadow: 0 -2px 20px rgba(0,0,0,0.35);
+  }
+
+  .fake-bar.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Lock icon */
+  .fake-bar .lock {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  /* Favicon */
+  .fake-bar .favicon {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* URL text */
+  .fake-bar .url {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  .fake-bar .url .domain {
+    color: #fff;
+  }
+
+  .fake-bar .url .path {
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+  }
+
+  /* Reload button on right */
+  .fake-bar .reload {
+    margin-left: auto;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Fake Google page for context -->
+  <div class="google-logo">
+    <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+  </div>
+
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Search Google or type a URL" readonly>
+  </div>
+
+  <button class="go-btn" id="showBtn">Go to Google.com</button>
+
+  <!-- Fake Arc Search address bar -->
+  <div class="fake-bar" id="fakeBar">
+    <!-- Lock icon SVG -->
+    <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+
+    <!-- Google favicon (inline data URI — no external request) -->
+    <svg class="favicon" viewBox="0 0 48 48">
+      <path fill="#4285F4" d="M45.5 24.5c0-1.5-.1-3-.4-4.5H24v8.5h12.1c-.5 2.7-2.1 5-4.4 6.5v5.4h7.1c4.2-3.8 6.7-9.4 6.7-15.9z"/>
+      <path fill="#34A853" d="M24 46c6.5 0 11.9-2.1 15.9-5.7l-7.1-5.4c-2.1 1.4-4.8 2.2-8.8 2.2-6.8 0-12.5-4.6-14.6-10.7H2.1v5.6C6 40.9 14.4 46 24 46z"/>
+      <path fill="#FBBC05" d="M9.4 26.4c-.5-1.4-.8-2.9-.8-4.4s.3-3 .8-4.4v-5.6H2.1C.8 14.9 0 18.4 0 22s.8 7.1 2.1 10l7.3-5.6z"/>
+      <path fill="#EA4335" d="M24 9.5c3.6 0 6.9 1.2 9.4 3.6l7-7C36 2.2 30.5 0 24 0 14.4 0 6 5.1 2.1 12.6l7.3 5.6C11.5 14.1 17.2 9.5 24 9.5z"/>
+    </svg>
+
+    <span class="url">
+      <span class="domain">google.com</span>
+    </span>
+
+    <!-- Reload icon -->
+    <svg class="reload" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/>
+      <path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/>
+    </svg>
+  </div>
+
+  <!-- Hidden textarea to force keyboard -->
+  <textarea id="ta" style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;" placeholder=""></textarea>
+
+<script>
+  const fakeBar = document.getElementById('fakeBar');
+  const ta = document.getElementById('ta');
+
+  function adjustFakeBar() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+    fakeBar.style.bottom = keyboardHeight > 10 ? keyboardHeight + 'px' : '0px';
+    fakeBar.style.borderRadius = keyboardHeight > 10 ? '16px' : '16px 16px 0 0';
+  }
+
+  function showFakeBar() {
+    fakeBar.classList.add('show');
+    adjustFakeBar();
+  }
+
+  function hideFakeBar() {
+    fakeBar.classList.remove('show');
+    fakeBar.style.bottom = '0px';
+  }
+
+  if ('visualViewport' in window) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (document.activeElement === ta) adjustFakeBar();
+    });
+  }
+
+  window.addEventListener('orientationchange', adjustFakeBar);
+
+  document.getElementById("showBtn").onclick = async () => {
+    ta.focus();
+
+    try {
+      await document.documentElement.requestFullscreen();
+      setTimeout(() => document.exitFullscreen().catch(() => {}), 120);
+    } catch (e) {}
+
+    setTimeout(async () => {
+      if (navigator.virtualKeyboard?.show) {
+        try { await navigator.virtualKeyboard.show(); } catch (e) {}
+      }
+      showFakeBar();
+    }, 150);
+  };
+
+  ta.addEventListener('blur', hideFakeBar);
+</script>
+
+</body>
+</html>
