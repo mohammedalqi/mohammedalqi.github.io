@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Google">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png">
 <title>Google</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -9,19 +14,19 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: #fff;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    gap: 24px;
-    padding: 32px 16px;
+    gap: 0;
+    padding: 32px 16px 120px;
   }
 
   .google-logo {
-    font-size: 52px;
+    font-size: 48px;
     font-weight: 700;
     letter-spacing: -2px;
+    margin-bottom: 20px;
   }
   .google-logo span:nth-child(1) { color: #4285F4; }
   .google-logo span:nth-child(2) { color: #EA4335; }
@@ -40,6 +45,7 @@
     max-width: 400px;
     gap: 10px;
     box-shadow: 0 1px 6px rgba(32,33,36,.1);
+    margin-bottom: 28px;
   }
   .search-box input {
     border: none;
@@ -49,18 +55,78 @@
     background: transparent;
   }
 
-  .go-btn {
-    background: #f1f3f4;
-    color: #202124;
-    border: none;
-    border-radius: 8px;
-    padding: 12px 22px;
-    font-size: 16px;
-    cursor: pointer;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ── Variant cards ── */
+  .variants { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; }
+
+  .variant-card {
+    border: 1px solid #dadce0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
-  /* Same Arc Search–style bottom bar as testcase.html */
+  .variant-card .badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    display: inline-block;
+    width: fit-content;
+  }
+  .badge-pwa    { background: #e8f0fe; color: #1a73e8; }
+  .badge-vk     { background: #fce8e6; color: #c5221f; }
+  .badge-none   { background: #fef7e0; color: #b06000; }
+  .badge-picker { background: #e6f4ea; color: #137333; }
+
+  .variant-card .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #202124;
+  }
+
+  .variant-card .desc {
+    font-size: 12px;
+    color: #5f6368;
+    line-height: 1.5;
+  }
+
+  .variant-card .support {
+    font-size: 11px;
+    color: #80868b;
+    font-style: italic;
+  }
+
+  .trigger-btn {
+    margin-top: 6px;
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    align-self: flex-start;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .trigger-btn:disabled {
+    background: #dadce0;
+    color: #80868b;
+    cursor: not-allowed;
+  }
+
+  #pwa-install-note {
+    font-size: 12px;
+    color: #c5221f;
+    margin-top: 4px;
+    display: none;
+  }
+
+  /* ── Fake Arc Search address bar ── */
   .fake-bar {
     position: fixed;
     bottom: 0;
@@ -76,11 +142,7 @@
     visibility: hidden;
     transition: opacity 0.2s ease;
   }
-
-  .fake-bar.show {
-    opacity: 1;
-    visibility: visible;
-  }
+  .fake-bar.show { opacity: 1; visibility: visible; }
 
   .fake-bar .bar-center {
     position: absolute;
@@ -90,34 +152,21 @@
     align-items: center;
     gap: 5px;
   }
-
   .fake-bar .bar-center .lock {
-    width: 11px;
-    height: 11px;
-    color: #3c3c43;
-    opacity: 0.6;
-    flex-shrink: 0;
+    width: 11px; height: 11px;
+    color: #3c3c43; opacity: 0.6;
   }
-
   .fake-bar .bar-center .url-text {
-    font-size: 17px;
-    font-weight: 400;
-    color: #000;
+    font-size: 17px; font-weight: 400; color: #000;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     letter-spacing: -0.2px;
   }
-
-  .fake-bar .bar-left { display: flex; align-items: center; padding: 4px; }
+  .fake-bar .bar-left  { display: flex; align-items: center; padding: 4px; }
   .fake-bar .bar-right { margin-left: auto; display: flex; align-items: center; padding: 4px; }
-
   .fake-bar svg.icon {
-    width: 20px;
-    height: 20px;
-    stroke: #007AFF;
-    fill: none;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    width: 20px; height: 20px;
+    stroke: #007AFF; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
   }
 </style>
 </head>
@@ -134,8 +183,48 @@
     <input type="text" placeholder="Search or type URL" readonly>
   </div>
 
-  <button class="go-btn" id="showBtn">Go to google.com</button>
+  <div class="variants">
 
+    <!-- Variant 1: PWA Standalone -->
+    <div class="variant-card">
+      <span class="badge badge-pwa">Variant 1</span>
+      <div class="title">PWA Standalone</div>
+      <div class="desc">Runs with zero browser chrome — no address bar, no keyboard URL indicator injection point. Complete bypass if Chrome only injects the real URL into browser UI chrome.</div>
+      <div class="support">Requires: Add to Home Screen → open from home screen</div>
+      <button class="trigger-btn" id="btn-pwa">Test PWA</button>
+      <div id="pwa-install-note">⚠ Not in standalone mode. Add to Home Screen first, then reopen.</div>
+    </div>
+
+    <!-- Variant 2: virtualKeyboard.overlaysContent -->
+    <div class="variant-card">
+      <span class="badge badge-vk">Variant 2</span>
+      <div class="title">VirtualKeyboard overlaysContent</div>
+      <div class="desc">Sets navigator.virtualKeyboard.overlaysContent = true so the keyboard overlays content instead of resizing the viewport. Chrome switches keyboard-handling path — URL injection may not run.</div>
+      <div class="support">Chrome Android / desktop only — not supported on iOS Safari</div>
+      <button class="trigger-btn" id="btn-vk">Test overlaysContent</button>
+    </div>
+
+    <!-- Variant 3: inputmode="none" + virtualKeyboard.show() -->
+    <div class="variant-card">
+      <span class="badge badge-none">Variant 3</span>
+      <div class="title">inputmode="none" + virtualKeyboard.show()</div>
+      <div class="desc">Suppresses the browser's automatic keyboard via inputmode="none", then forces it up programmatically. URL injection is likely tied to the standard focus→keyboard flow, not the programmatic path.</div>
+      <div class="support">Chrome Android / desktop only — not supported on iOS Safari</div>
+      <button class="trigger-btn" id="btn-none">Test inputmode=none</button>
+    </div>
+
+    <!-- Variant 4: type="time" wheel picker -->
+    <div class="variant-card">
+      <span class="badge badge-picker">Variant 4</span>
+      <div class="title">Date / Time wheel picker</div>
+      <div class="desc">type="time" shows an iOS wheel picker instead of a keyboard — no keyboard accessory bar exists so Chrome has nowhere to inject the real URL. Fake bar positions above the picker.</div>
+      <div class="support">iOS Safari + Chrome iOS — wheel picker replaces keyboard entirely</div>
+      <button class="trigger-btn" id="btn-picker">Test time picker</button>
+    </div>
+
+  </div>
+
+  <!-- Fake Arc Search address bar (shared across all variants) -->
   <div class="fake-bar" id="fakeBar">
     <div class="bar-left">
       <svg class="icon" viewBox="0 0 24 24">
@@ -159,38 +248,31 @@
     </div>
   </div>
 
-  <!--
-    REGRESSION HYPOTHESIS:
-    Chrome's fix injects the real origin into the QWERTY keyboard accessory bar
-    (the ↑ ↓ Done strip). The numeric keypad (type="tel") has a completely
-    different accessory structure — no ↑ ↓ Done row — so Chrome may not
-    inject the URL indicator there.
-
-    Three hidden inputs to test different keyboard variants:
-      #ta-tel      → type="tel"            → numeric dialpad
-      #ta-number   → type="number"         → numeric + decimal
-      #ta-search   → type="search"         → QWERTY (baseline, should show real URL like original)
-  -->
-  <input id="ta-tel"    type="tel"    inputmode="tel"     style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
-  <input id="ta-number" type="number" inputmode="numeric" style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
-  <input id="ta-search" type="search"                     style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+  <!-- Hidden inputs for each variant -->
+  <input id="ta-pwa"    type="text"                       style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+  <input id="ta-vk"     type="text"                       style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+  <input id="ta-none"   type="text" inputmode="none"      style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+  <input id="ta-picker" type="time"                       style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
 
 <script>
   const fakeBar = document.getElementById('fakeBar');
 
-  // Cycle through keyboard types on each button press so you can
-  // test all three variants in one session without editing the file.
-  const variants = [
-    { id: 'ta-tel',    label: 'tel keypad'     },
-    { id: 'ta-number', label: 'number keypad'  },
-    { id: 'ta-search', label: 'search (baseline — should expose real URL)' },
-  ];
-  let variantIndex = 0;
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
 
-  function adjustFakeBar(ta) {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
+  const hasVK = 'virtualKeyboard' in navigator;
+
+  // Disable VK buttons if API not available
+  if (!hasVK) {
+    document.getElementById('btn-vk').disabled = true;
+    document.getElementById('btn-none').disabled = true;
+  }
+
+  // ── Fake bar position helpers ──
+
+  function showBar(kbHeight) {
+    fakeBar.classList.add('show');
     if (kbHeight > 50) {
       fakeBar.style.bottom = kbHeight + 'px';
       fakeBar.style.paddingBottom = '9px';
@@ -200,48 +282,99 @@
     }
   }
 
-  function hideFakeBar() {
+  function hideBar() {
     fakeBar.classList.remove('show');
     fakeBar.style.bottom = '0px';
     fakeBar.style.paddingBottom = '34px';
   }
 
-  document.getElementById('showBtn').onclick = async () => {
-    const v = variants[variantIndex % variants.length];
-    variantIndex++;
+  function getKbHeight() {
+    const vv = window.visualViewport;
+    if (!vv) return 0;
+    return Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  }
 
-    // Update button label so tester knows which variant fired
-    document.getElementById('showBtn').textContent =
-      `Go to google.com [${v.label}]`;
+  function watchViewport(ta) {
+    const handler = () => { if (document.activeElement === ta) showBar(getKbHeight()); };
+    window.visualViewport?.addEventListener('resize', handler);
+    ta.addEventListener('blur', () => {
+      window.visualViewport?.removeEventListener('resize', handler);
+      hideBar();
+    }, { once: true });
+  }
 
-    const ta = document.getElementById(v.id);
+  // ── Variant 1: PWA Standalone ──
+  document.getElementById('btn-pwa').onclick = () => {
+    if (!isStandalone) {
+      document.getElementById('pwa-install-note').style.display = 'block';
+      return;
+    }
+    const ta = document.getElementById('ta-pwa');
+    watchViewport(ta);
+    ta.focus();
+    setTimeout(() => showBar(getKbHeight()), 150);
+  };
 
-    // Detach previous blur listener by cloning
-    const fresh = ta.cloneNode();
-    ta.parentNode.replaceChild(fresh, ta);
-    fresh.id = v.id;
-    fresh.addEventListener('blur', hideFakeBar);
+  // ── Variant 2: virtualKeyboard.overlaysContent ──
+  document.getElementById('btn-vk').onclick = async () => {
+    const ta = document.getElementById('ta-vk');
 
-    if ('visualViewport' in window) {
-      window.visualViewport.onresize = () => {
-        if (document.activeElement === fresh) adjustFakeBar(fresh);
-      };
+    if (hasVK) {
+      // Keyboard overlays content — viewport does NOT resize
+      // so we listen to the VK geometrychange event for position
+      navigator.virtualKeyboard.overlaysContent = true;
+      navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
+        const kbHeight = e.target.boundingRect.height;
+        if (kbHeight > 0) showBar(kbHeight); else hideBar();
+      }, { once: false });
     }
 
-    fresh.focus();
+    watchViewport(ta);
+    ta.focus();
+    setTimeout(() => showBar(getKbHeight()), 150);
+  };
 
-    try {
-      await document.documentElement.requestFullscreen();
-      setTimeout(() => document.exitFullscreen().catch(() => {}), 120);
-    } catch (e) {}
+  // ── Variant 3: inputmode="none" + virtualKeyboard.show() ──
+  document.getElementById('btn-none').onclick = async () => {
+    const ta = document.getElementById('ta-none');
 
-    setTimeout(async () => {
-      if (navigator.virtualKeyboard?.show) {
-        try { await navigator.virtualKeyboard.show(); } catch (e) {}
-      }
-      fakeBar.classList.add('show');
-      adjustFakeBar(fresh);
-    }, 150);
+    if (hasVK) {
+      navigator.virtualKeyboard.overlaysContent = true;
+      navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
+        const kbHeight = e.target.boundingRect.height;
+        if (kbHeight > 0) showBar(kbHeight); else hideBar();
+      }, { once: false });
+    }
+
+    ta.focus();
+
+    if (hasVK) {
+      try { await navigator.virtualKeyboard.show(); } catch (e) {}
+    }
+
+    setTimeout(() => showBar(getKbHeight()), 150);
+
+    ta.addEventListener('blur', hideBar, { once: true });
+  };
+
+  // ── Variant 4: type="time" wheel picker ──
+  document.getElementById('btn-picker').onclick = () => {
+    const ta = document.getElementById('ta-picker');
+
+    // visualViewport resizes when iOS wheel picker appears
+    const handler = () => { if (document.activeElement === ta) showBar(getKbHeight()); };
+    window.visualViewport?.addEventListener('resize', handler);
+
+    ta.addEventListener('blur', () => {
+      window.visualViewport?.removeEventListener('resize', handler);
+      hideBar();
+    }, { once: true });
+
+    ta.focus();
+    // Programmatically open the picker on supported browsers
+    try { ta.showPicker?.(); } catch (e) {}
+
+    setTimeout(() => showBar(getKbHeight()), 300);
   };
 </script>
 
