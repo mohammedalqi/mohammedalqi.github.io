@@ -338,17 +338,19 @@
   function adjustLayout() {
     const vv = window.visualViewport;
     if (!vv) return;
-    const kbH = window.innerHeight - vv.height - vv.offsetTop;
+    const kbH     = window.innerHeight - vv.height - vv.offsetTop;
     const aboveKb = kbH > 50;
 
-    // Fake bar sits just above the keyboard
+    // Fake bar sits just above the keyboard (or pinned at bottom when no keyboard)
     fakeBar.style.bottom        = aboveKb ? kbH + 'px' : '0px';
     fakeBar.style.paddingBottom = aboveKb ? '9px'      : '34px';
 
-    // Overlay must sit above the fake bar, not behind it —
-    // offset by the fake bar's rendered height so Next button is never clipped
-    const barH = fakeBar.offsetHeight;
-    credOverlay.style.bottom = aboveKb ? (kbH + barH) + 'px' : '0px';
+    // Overlay must always clear the fake bar — even when keyboard is closed.
+    // Without this, both snap to bottom:0 and the fake bar hides the Next button.
+    requestAnimationFrame(() => {
+      const barH = fakeBar.offsetHeight;
+      credOverlay.style.bottom = (aboveKb ? kbH : 0) + barH + 'px';
+    });
   }
 
   if (window.visualViewport) {
@@ -359,13 +361,14 @@
 
   function showSpoof() {
     spoofActive = true;
-    fakeBar.classList.add('show');
+    fakeBar.classList.add('show'); // must be before adjustLayout so offsetHeight is non-zero
     adjustLayout();
 
     // Slide up credential sheet, then focus password field.
     // Arc iOS does not disclose the real origin in the keyboard accessory
     // bar, so the spoof holds even while the user types their password.
     setTimeout(() => {
+      adjustLayout(); // ensure overlay clears fake bar before sliding up
       credOverlay.classList.add('show');
       setTimeout(() => pwField.focus(), 350);
     }, 500);
