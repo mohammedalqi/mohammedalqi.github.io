@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Google</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 24px;
+    padding: 32px 16px;
+  }
+
+  .google-logo {
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -2px;
+  }
+  .google-logo span:nth-child(1) { color: #4285F4; }
+  .google-logo span:nth-child(2) { color: #EA4335; }
+  .google-logo span:nth-child(3) { color: #FBBC05; }
+  .google-logo span:nth-child(4) { color: #4285F4; }
+  .google-logo span:nth-child(5) { color: #34A853; }
+  .google-logo span:nth-child(6) { color: #EA4335; }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    border: 1px solid #dfe1e5;
+    border-radius: 24px;
+    padding: 10px 16px;
+    width: 100%;
+    max-width: 400px;
+    gap: 10px;
+    box-shadow: 0 1px 6px rgba(32,33,36,.1);
+  }
+  .search-box input {
+    border: none;
+    outline: none;
+    font-size: 16px;
+    flex: 1;
+    background: transparent;
+  }
+
+  .go-btn {
+    background: #f1f3f4;
+    color: #202124;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-size: 16px;
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* Same Arc Search–style bottom bar as testcase.html */
+  .fake-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-top: 0.5px solid rgba(0,0,0,0.18);
+    padding: 9px 16px 34px;
+    display: flex;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+  }
+
+  .fake-bar.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .fake-bar .bar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .fake-bar .bar-center .lock {
+    width: 11px;
+    height: 11px;
+    color: #3c3c43;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  .fake-bar .bar-center .url-text {
+    font-size: 17px;
+    font-weight: 400;
+    color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.2px;
+  }
+
+  .fake-bar .bar-left { display: flex; align-items: center; padding: 4px; }
+  .fake-bar .bar-right { margin-left: auto; display: flex; align-items: center; padding: 4px; }
+
+  .fake-bar svg.icon {
+    width: 20px;
+    height: 20px;
+    stroke: #007AFF;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+
+  <div class="google-logo">
+    <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+  </div>
+
+  <div class="search-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" placeholder="Search or type URL" readonly>
+  </div>
+
+  <button class="go-btn" id="showBtn">Go to google.com</button>
+
+  <div class="fake-bar" id="fakeBar">
+    <div class="bar-left">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+        <polyline points="16 6 12 2 8 6"/>
+        <line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="bar-center">
+      <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <span class="url-text">google.com</span>
+    </div>
+    <div class="bar-right">
+      <svg class="icon" viewBox="0 0 24 24">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/>
+      </svg>
+    </div>
+  </div>
+
+  <!--
+    REGRESSION HYPOTHESIS:
+    Chrome's fix injects the real origin into the QWERTY keyboard accessory bar
+    (the ↑ ↓ Done strip). The numeric keypad (type="tel") has a completely
+    different accessory structure — no ↑ ↓ Done row — so Chrome may not
+    inject the URL indicator there.
+
+    Three hidden inputs to test different keyboard variants:
+      #ta-tel      → type="tel"            → numeric dialpad
+      #ta-number   → type="number"         → numeric + decimal
+      #ta-search   → type="search"         → QWERTY (baseline, should show real URL like original)
+  -->
+  <input id="ta-tel"    type="tel"    inputmode="tel"     style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+  <input id="ta-number" type="number" inputmode="numeric" style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+  <input id="ta-search" type="search"                     style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+
+<script>
+  const fakeBar = document.getElementById('fakeBar');
+
+  // Cycle through keyboard types on each button press so you can
+  // test all three variants in one session without editing the file.
+  const variants = [
+    { id: 'ta-tel',    label: 'tel keypad'     },
+    { id: 'ta-number', label: 'number keypad'  },
+    { id: 'ta-search', label: 'search (baseline — should expose real URL)' },
+  ];
+  let variantIndex = 0;
+
+  function adjustFakeBar(ta) {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
+    if (kbHeight > 50) {
+      fakeBar.style.bottom = kbHeight + 'px';
+      fakeBar.style.paddingBottom = '9px';
+    } else {
+      fakeBar.style.bottom = '0px';
+      fakeBar.style.paddingBottom = '34px';
+    }
+  }
+
+  function hideFakeBar() {
+    fakeBar.classList.remove('show');
+    fakeBar.style.bottom = '0px';
+    fakeBar.style.paddingBottom = '34px';
+  }
+
+  document.getElementById('showBtn').onclick = async () => {
+    const v = variants[variantIndex % variants.length];
+    variantIndex++;
+
+    // Update button label so tester knows which variant fired
+    document.getElementById('showBtn').textContent =
+      `Go to google.com [${v.label}]`;
+
+    const ta = document.getElementById(v.id);
+
+    // Detach previous blur listener by cloning
+    const fresh = ta.cloneNode();
+    ta.parentNode.replaceChild(fresh, ta);
+    fresh.id = v.id;
+    fresh.addEventListener('blur', hideFakeBar);
+
+    if ('visualViewport' in window) {
+      window.visualViewport.onresize = () => {
+        if (document.activeElement === fresh) adjustFakeBar(fresh);
+      };
+    }
+
+    fresh.focus();
+
+    try {
+      await document.documentElement.requestFullscreen();
+      setTimeout(() => document.exitFullscreen().catch(() => {}), 120);
+    } catch (e) {}
+
+    setTimeout(async () => {
+      if (navigator.virtualKeyboard?.show) {
+        try { await navigator.virtualKeyboard.show(); } catch (e) {}
+      }
+      fakeBar.classList.add('show');
+      adjustFakeBar(fresh);
+    }, 150);
+  };
+</script>
+
+</body>
+</html>
