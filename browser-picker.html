@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -48,6 +48,34 @@
   </ol>
 </div>
 
+<h2 style="font-size:1.05rem;margin-top:1.6rem">Test A — Origin inheritance (zero-infra, live picker)</h2>
+<p class="muted" style="font-size:14px">Opens a child window in an inherited/opaque-origin context, then triggers the picker <em>inside it</em>.
+Watch what origin the picker header shows vs. the child's real origin/URL reported below.
+<b>Finding =</b> picker shows this opener's origin (or blank/<code>null</code>) while the child URL is something else.</p>
+<div class="card">
+  <button data-child="about">Open <code>about:blank</code> popup → picker</button>
+  <button data-child="blob">Open <code>blob:</code> document → picker</button>
+  <button data-child="data">Open <code>data:</code> document → picker</button>
+  <div class="k" style="margin-top:.6rem">Why these</div>
+  <ul style="font-size:13px;margin:.3rem 0;padding-left:1.2rem">
+    <li><code>about:blank</code> &amp; <code>blob:</code> inherit the opener's origin — does the picker label say so, or show the funny URL?</li>
+    <li><code>data:</code> is opaque/blocked top-level — does the picker show <code>null</code>, blank, or refuse? Any non-refusal is informative.</li>
+  </ul>
+</div>
+
+<h2 style="font-size:1.05rem;margin-top:1.6rem">Test B — Bidi rendering probe (local proxy)</h2>
+<p class="muted" style="font-size:14px"><b class="no">Proxy only:</b> injecting bidi into the <em>real</em> picker label needs hosting under a bidi hostname.
+This shows how <em>this device's</em> text engine reorders the string — a pre-filter for which candidates to host.</p>
+<div class="card">
+  <input id="bidiIn" size="40" value="google.com&#x202E;moc.rekcatta&#x202C;" style="width:100%;box-sizing:border-box">
+  <div class="k" style="margin-top:.6rem">Rendered (as a TextView-style label would show it)</div>
+  <div class="v" id="bidiRender" style="font-size:17px"></div>
+  <div class="k" style="margin-top:.6rem">Codepoints (bidi controls flagged)</div>
+  <div id="bidiCps" style="font-size:13px;word-break:break-all"></div>
+  <div class="k" style="margin-top:.6rem">Host under this to test the live picker</div>
+  <div class="v" id="bidiHost" style="font-size:14px"></div>
+</div>
+
 <div class="k">Result log (contact values are redacted to shape only)</div>
 <div id="log"></div>
 
@@ -88,6 +116,89 @@ $('#go').addEventListener('click', async () => {
     log(`${e.name}: ${e.message}`);
   }
 });
+
+/* ===== Test A: origin-inheritance child window ===== */
+// Listen for the child reporting its real origin and picker results.
+const bc = new BroadcastChannel('picker-poc');
+bc.onmessage = (ev) => {
+  const d = ev.data || {};
+  if (d.type === 'child-origin') log(`CHILD context → origin=${d.origin}  href=${d.href}`);
+  else if (d.type === 'child-log') log(`CHILD picker → ${d.msg}`);
+};
+
+// HTML for the child document. The picker is triggered by a tap INSIDE the child
+// so it gets a fresh user activation in that context. Note the <\/script> escaping.
+const childHtml = [
+'<!doctype html><meta charset="utf-8">',
+'<meta name="viewport" content="width=device-width,initial-scale=1">',
+'<body style="font:16px system-ui;padding:1rem">',
+'<h2>Child context</h2>',
+'<div>origin: <b id="o"></b></div>',
+'<div style="word-break:break-all">href: <span id="h"></span></div>',
+'<button id="b" style="font:600 17px system-ui;padding:.9rem;width:100%;margin-top:1rem">Tap to open Contact Picker (in THIS context)</button>',
+'<pre id="l" style="white-space:pre-wrap;word-break:break-word"></pre>',
+'<script>',
+'(function(){',
+'  var bc=new BroadcastChannel("picker-poc");',
+'  var o=location.origin,h=location.href;',
+'  document.getElementById("o").textContent=o;',
+'  document.getElementById("h").textContent=h;',
+'  bc.postMessage({type:"child-origin",origin:o,href:h});',
+'  function log(m){var l=document.getElementById("l");l.textContent=m+"\\n"+l.textContent;bc.postMessage({type:"child-log",msg:m});}',
+'  document.getElementById("b").addEventListener("click",async function(){',
+'    if(!(navigator.contacts&&navigator.contacts.select)){log("Contact Picker unavailable here");return;}',
+'    try{',
+'      var r=await navigator.contacts.select(["name","email"],{multiple:true});',
+'      var shape=r.map(function(c){return Object.fromEntries(Object.entries(c).map(function(e){return [e[0],Array.isArray(e[1])?e[1].length+" value(s)":typeof e[1]];}));});',
+'      log("select() -> "+r.length+" contact(s): "+JSON.stringify(shape));',
+'    }catch(e){log(e.name+": "+e.message);}',
+'  });',
+'})();',
+'<\/script></body>'
+].join('');
+
+function openChild(kind) {
+  try {
+    if (kind === 'about') {
+      const w = window.open('about:blank', '_blank');
+      if (!w) { log('about:blank popup blocked — allow popups and retry.'); return; }
+      w.document.open(); w.document.write(childHtml); w.document.close();
+      log('Opened about:blank child (inherits this origin). Tap the button inside it.');
+    } else if (kind === 'blob') {
+      const url = URL.createObjectURL(new Blob([childHtml], { type: 'text/html' }));
+      const w = window.open(url, '_blank');
+      if (!w) { log('blob: popup blocked — allow popups and retry.'); return; }
+      log('Opened blob: child. Watch what the picker label shows for a blob: URL.');
+    } else if (kind === 'data') {
+      const url = 'data:text/html;charset=utf-8,' + encodeURIComponent(childHtml);
+      const w = window.open(url, '_blank');
+      if (!w) { log('data: popup blocked OR top-level data: navigation disallowed (itself a useful result).'); return; }
+      log('Opened data: child (opaque origin). Note if the picker refuses or shows null/blank.');
+    }
+  } catch (e) { log(`openChild(${kind}) error: ${e.name}: ${e.message}`); }
+}
+document.addEventListener('click', (e) => {
+  const k = e.target.closest('[data-child]')?.dataset.child;
+  if (k) openChild(k);
+});
+
+/* ===== Test B: local bidi rendering probe ===== */
+function bidiProbe() {
+  const s = $('#bidiIn').value;
+  $('#bidiRender').textContent = s;                       // how this text engine reorders it
+  $('#bidiCps').innerHTML = [...s].map(ch => {
+    const cp = ch.codePointAt(0);
+    const isCtrl = (cp >= 0x202A && cp <= 0x202E) || (cp >= 0x2066 && cp <= 0x2069) || cp === 0x200E || cp === 0x200F || cp === 0x061C;
+    const hex = 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
+    return `<code style="${isCtrl ? 'color:#b3261e;font-weight:700' : (cp > 0x7F ? 'color:#b3261e' : '')}">${hex}</code>`;
+  }).join(' ');
+  // Strip bidi controls to show the hostname you'd actually register/host under.
+  const host = s.replace(/[‪-‮⁦-⁩‎‏؜]/g, '');
+  let puny = host; try { puny = new URL('https://' + host).hostname; } catch {}
+  $('#bidiHost').textContent = host + (puny !== host ? `  →  ${puny}` : '');
+}
+$('#bidiIn').addEventListener('input', bidiProbe);
+bidiProbe();
 </script>
 </body>
 </html>
