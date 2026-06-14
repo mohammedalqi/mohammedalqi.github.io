@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Picker Testbed</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 1rem; max-width: 880px; }
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1rem; margin-top: 1.5rem; border-bottom: 1px solid #8884; padding-bottom: .25rem; }
+  button { font: inherit; padding: .5rem .9rem; margin: .25rem .25rem .25rem 0; cursor: pointer; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: .5rem; }
+  pre { background: #8881; padding: .75rem; border-radius: 6px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  .ok { color: #1a7f37; } .no { color: #b3261e; } .muted { opacity: .7; }
+  code { background: #8882; padding: .1rem .3rem; border-radius: 3px; }
+  #log { min-height: 4rem; }
+  label.file { display: inline-block; }
+</style>
+</head>
+<body>
+<h1>Browser Picker Testbed</h1>
+<p class="muted">Cross-browser harness for Contact Picker / File Picker UI &amp; behavior comparison. Everything runs locally; nothing is sent anywhere.</p>
+
+<h2>Environment</h2>
+<pre id="env">collecting…</pre>
+
+<h2>Feature support</h2>
+<pre id="support">checking…</pre>
+
+<h2>Contact Picker API</h2>
+<p class="muted"><code>navigator.contacts.select()</code> — Android Chrome/Edge only, requires HTTPS or localhost, and a user gesture.</p>
+<div class="grid">
+  <div>
+    <button data-act="contacts-basic">select() name + email</button>
+    <button data-act="contacts-all">select() all available props, multiple</button>
+    <button data-act="contacts-props">getProperties()</button>
+  </div>
+</div>
+
+<h2>File pickers</h2>
+<div class="grid">
+  <div>
+    <button data-act="fsa-open">showOpenFilePicker()</button>
+    <button data-act="fsa-multi">showOpenFilePicker() multiple</button>
+    <button data-act="fsa-save">showSaveFilePicker()</button>
+    <button data-act="fsa-dir">showDirectoryPicker()</button>
+  </div>
+  <div>
+    <label class="file">Classic input: <input type="file" id="f-single"></label>
+    <label class="file">Multiple: <input type="file" id="f-multi" multiple></label>
+    <label class="file">Images only: <input type="file" id="f-img" accept="image/*"></label>
+    <label class="file">Capture (camera): <input type="file" id="f-cap" accept="image/*" capture="environment"></label>
+    <label class="file">Directory: <input type="file" id="f-dir" webkitdirectory></label>
+  </div>
+</div>
+
+<h2>Log</h2>
+<button data-act="clear">clear log</button>
+<pre id="log"></pre>
+
+<script>
+const $ = s => document.querySelector(s);
+const logEl = $('#log');
+function log(label, data) {
+  const time = new Date().toISOString().slice(11, 23);
+  let body;
+  try { body = typeof data === 'string' ? data : JSON.stringify(data, null, 2); }
+  catch { body = String(data); }
+  logEl.textContent = `[${time}] ${label}\n${body}\n\n` + logEl.textContent;
+}
+
+// ---- Environment ----
+(function () {
+  const ua = navigator.userAgentData;
+  const env = {
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    uaData: ua ? { mobile: ua.mobile, platform: ua.platform, brands: ua.brands } : 'n/a',
+    secureContext: window.isSecureContext,
+    origin: location.origin,
+    viewport: `${innerWidth}x${innerHeight} @${devicePixelRatio}x`,
+  };
+  $('#env').textContent = JSON.stringify(env, null, 2);
+})();
+
+// ---- Feature support ----
+(function () {
+  const feats = {
+    'navigator.contacts': 'contacts' in navigator,
+    'ContactsManager.select': !!(navigator.contacts && navigator.contacts.select),
+    'ContactsManager.getProperties': !!(navigator.contacts && navigator.contacts.getProperties),
+    'showOpenFilePicker': 'showOpenFilePicker' in window,
+    'showSaveFilePicker': 'showSaveFilePicker' in window,
+    'showDirectoryPicker': 'showDirectoryPicker' in window,
+    'input capture attr': 'capture' in document.createElement('input'),
+    'webkitdirectory': 'webkitdirectory' in document.createElement('input'),
+  };
+  $('#support').innerHTML = Object.entries(feats)
+    .map(([k, v]) => `<span class="${v ? 'ok' : 'no'}">${v ? '✓' : '✗'}</span> ${k}`)
+    .join('\n');
+})();
+
+// ---- Contact Picker ----
+async function contactsSelect(props, opts) {
+  if (!(navigator.contacts && navigator.contacts.select)) {
+    log('Contact Picker', 'Unsupported in this browser/context (needs Android Chrome/Edge, HTTPS).');
+    return;
+  }
+  try {
+    const t0 = performance.now();
+    const result = await navigator.contacts.select(props, opts);
+    const dt = (performance.now() - t0).toFixed(0);
+    // Redact actual values; report shape only so you can share reports safely.
+    const shape = result.map(c => Object.fromEntries(
+      Object.entries(c).map(([k, v]) => [k, Array.isArray(v) ? `${v.length} value(s)` : typeof v])
+    ));
+    log(`contacts.select(${JSON.stringify(props)}) → ${result.length} contact(s) in ${dt}ms`, shape);
+  } catch (e) {
+    log('contacts.select error', `${e.name}: ${e.message}`);
+  }
+}
+
+async function contactsProps() {
+  if (!(navigator.contacts && navigator.contacts.getProperties)) {
+    log('getProperties', 'Unsupported.');
+    return;
+  }
+  try {
+    const p = await navigator.contacts.getProperties();
+    log('getProperties()', p);
+  } catch (e) {
+    log('getProperties error', `${e.name}: ${e.message}`);
+  }
+}
+
+// ---- File System Access ----
+async function fsa(method, opts) {
+  if (!(method in window)) { log(method, 'Unsupported in this browser.'); return; }
+  try {
+    const handles = await window[method](opts);
+    const arr = Array.isArray(handles) ? handles : [handles];
+    const info = [];
+    for (const h of arr) {
+      const entry = { kind: h.kind, name: h.name };
+      if (h.kind === 'file' && h.getFile) {
+        try { const f = await h.getFile(); entry.size = f.size; entry.type = f.type || '(none)'; entry.lastModified = f.lastModified; }
+        catch (e) { entry.fileError = e.message; }
+      }
+      info.push(entry);
+    }
+    log(`${method}() → ${arr.length} handle(s)`, info);
+  } catch (e) {
+    log(`${method} error`, `${e.name}: ${e.message}`);
+  }
+}
+
+// ---- Classic <input type=file> ----
+function wireInput(id) {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('change', () => {
+    const files = [...el.files].map(f => ({
+      name: f.name, size: f.size, type: f.type || '(none)',
+      lastModified: f.lastModified,
+      relativePath: f.webkitRelativePath || undefined,
+    }));
+    log(`input ${id} change → ${files.length} file(s)`, files);
+  });
+}
+['#f-single', '#f-multi', '#f-img', '#f-cap', '#f-dir'].forEach(wireInput);
+
+// ---- Button dispatch ----
+const ALL_PROPS = ['name', 'email', 'tel', 'address', 'icon'];
+document.addEventListener('click', e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (!act) return;
+  switch (act) {
+    case 'contacts-basic': contactsSelect(['name', 'email'], { multiple: false }); break;
+    case 'contacts-all':   contactsSelect(ALL_PROPS, { multiple: true }); break;
+    case 'contacts-props': contactsProps(); break;
+    case 'fsa-open':  fsa('showOpenFilePicker'); break;
+    case 'fsa-multi': fsa('showOpenFilePicker', { multiple: true }); break;
+    case 'fsa-save':  fsa('showSaveFilePicker', { suggestedName: 'testbed.txt' }); break;
+    case 'fsa-dir':   fsa('showDirectoryPicker'); break;
+    case 'clear':     logEl.textContent = ''; break;
+  }
+});
+</script>
+</body>
+</html>
