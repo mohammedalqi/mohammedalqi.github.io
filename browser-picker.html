@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contact Picker Origin PoC</title>
+<title>Browser Chooser Origin PoC</title>
 <style>
   :root { color-scheme: light dark; }
   body { font: 16px/1.55 system-ui, sans-serif; margin: 0 auto; padding: 1.2rem; max-width: 640px; }
@@ -19,7 +19,7 @@
 </style>
 </head>
 <body>
-<h1>Contact Picker — Origin Display PoC</h1>
+<h1>Browser Chooser — Origin Display PoC</h1>
 
 <div class="card">
   <div class="k">Live origin (committed)</div>
@@ -48,18 +48,30 @@
   </ol>
 </div>
 
-<h2 style="font-size:1.05rem;margin-top:1.6rem">Test A — Origin inheritance (zero-infra, live picker)</h2>
-<p class="muted" style="font-size:14px">Opens a child window in an inherited/opaque-origin context, then triggers the picker <em>inside it</em>.
-Watch what origin the picker header shows vs. the child's real origin/URL reported below.
-<b>Finding =</b> picker shows this opener's origin (or blank/<code>null</code>) while the child URL is something else.</p>
+<h2 style="font-size:1.05rem;margin-top:1.6rem">Device choosers (direct) — Bluetooth / USB</h2>
+<p class="muted" style="font-size:14px">Same origin-label code path as the Contact Picker (<code>ItemChooserDialog</code>), but the title origin is run through
+<code>OmniboxUrlEmphasizer</code> and is a clickable span. Tap, then study how the bold origin is rendered/emphasized in the chooser header
+(which segment is bolded as the "real" host), and how it looks for unusual origins.</p>
 <div class="card">
-  <button data-child="about">Open <code>about:blank</code> popup → picker</button>
-  <button data-child="blob">Open <code>blob:</code> document → picker</button>
-  <button data-child="data">Open <code>data:</code> document → picker</button>
+  <div class="k">API support</div>
+  <div class="v" id="devSupport" style="font-size:15px">checking…</div>
+  <button data-chooser="bluetooth">📶 Open Bluetooth chooser</button>
+  <button data-chooser="usb">🔌 Open USB chooser</button>
+</div>
+
+<h2 style="font-size:1.05rem;margin-top:1.6rem">Test A — Origin inheritance (zero-infra, live chooser)</h2>
+<p class="muted" style="font-size:14px">Opens a child window in an inherited/opaque-origin context, then triggers the picker/chooser <em>inside it</em>.
+Watch what origin each dialog header shows vs. the child's real origin/URL reported below.
+<b>Finding =</b> dialog shows this opener's origin (or blank/<code>null</code>) while the child URL is something else.</p>
+<div class="card">
+  <button data-child="about">Open <code>about:blank</code> popup → choosers</button>
+  <button data-child="blob">Open <code>blob:</code> document → choosers</button>
+  <button data-child="data">Open <code>data:</code> document → choosers</button>
   <div class="k" style="margin-top:.6rem">Why these</div>
   <ul style="font-size:13px;margin:.3rem 0;padding-left:1.2rem">
-    <li><code>about:blank</code> &amp; <code>blob:</code> inherit the opener's origin — does the picker label say so, or show the funny URL?</li>
-    <li><code>data:</code> is opaque/blocked top-level — does the picker show <code>null</code>, blank, or refuse? Any non-refusal is informative.</li>
+    <li><code>about:blank</code> &amp; <code>blob:</code> inherit the opener's origin — does the dialog label say so, or show the funny URL?</li>
+    <li><code>data:</code> is opaque/blocked top-level — does the dialog show <code>null</code>, blank, or refuse? Any non-refusal is informative.</li>
+    <li>The child has <b>Contacts</b>, <b>Bluetooth</b>, and <b>USB</b> buttons — compare the origin across all three dialogs.</li>
   </ul>
 </div>
 
@@ -96,6 +108,35 @@ const supported = !!(navigator.contacts && navigator.contacts.select);
 $('#support').innerHTML = supported
   ? '<span class="ok">✓ supported</span>'
   : '<span class="no">✗ not available here</span> (needs Android Chrome/Edge, HTTPS or localhost)';
+
+// Device chooser support (Web Bluetooth / WebUSB share ItemChooserDialog on Android)
+const btOk = !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
+const usbOk = !!(navigator.usb && navigator.usb.requestDevice);
+$('#devSupport').innerHTML =
+  `<span class="${btOk ? 'ok' : 'no'}">${btOk ? '✓' : '✗'}</span> Web Bluetooth &nbsp;&nbsp; ` +
+  `<span class="${usbOk ? 'ok' : 'no'}">${usbOk ? '✓' : '✗'}</span> WebUSB` +
+  (location.protocol !== 'https:' && location.hostname !== 'localhost'
+    ? ' <span class="no">(needs HTTPS)</span>' : '');
+
+// Direct chooser triggers. We only confirm invocation + redact device identity;
+// the actual test is visual — read the origin in the chooser header.
+async function triggerChooser(kind) {
+  try {
+    if (kind === 'bluetooth') {
+      if (!btOk) { log('Web Bluetooth unavailable here (needs HTTPS + gesture + adapter).'); return; }
+      await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+      log('bluetooth chooser → device selected (identity redacted)');
+    } else if (kind === 'usb') {
+      if (!usbOk) { log('WebUSB unavailable here (needs HTTPS + gesture).'); return; }
+      await navigator.usb.requestDevice({ filters: [] });
+      log('usb chooser → device selected (identity redacted)');
+    }
+  } catch (e) { log(`${kind} chooser: ${e.name}: ${e.message}`); }
+}
+document.addEventListener('click', (e) => {
+  const c = e.target.closest('[data-chooser]')?.dataset.chooser;
+  if (c) triggerChooser(c);
+});
 
 // The actual repro action.
 $('#go').addEventListener('click', async () => {
@@ -135,7 +176,10 @@ const childHtml = [
 '<h2>Child context</h2>',
 '<div>origin: <b id="o"></b></div>',
 '<div style="word-break:break-all">href: <span id="h"></span></div>',
-'<button id="b" style="font:600 17px system-ui;padding:.9rem;width:100%;margin-top:1rem">Tap to open Contact Picker (in THIS context)</button>',
+'<p style="opacity:.7;font-size:13px">Tap each to open that dialog IN THIS context, then read its origin header.</p>',
+'<button id="bc_contacts" style="font:600 16px system-ui;padding:.8rem;width:100%;margin-top:.6rem">Contact Picker (here)</button>',
+'<button id="bc_bt" style="font:600 16px system-ui;padding:.8rem;width:100%;margin-top:.5rem">Bluetooth chooser (here)</button>',
+'<button id="bc_usb" style="font:600 16px system-ui;padding:.8rem;width:100%;margin-top:.5rem">USB chooser (here)</button>',
 '<pre id="l" style="white-space:pre-wrap;word-break:break-word"></pre>',
 '<script>',
 '(function(){',
@@ -145,13 +189,18 @@ const childHtml = [
 '  document.getElementById("h").textContent=h;',
 '  bc.postMessage({type:"child-origin",origin:o,href:h});',
 '  function log(m){var l=document.getElementById("l");l.textContent=m+"\\n"+l.textContent;bc.postMessage({type:"child-log",msg:m});}',
-'  document.getElementById("b").addEventListener("click",async function(){',
-'    if(!(navigator.contacts&&navigator.contacts.select)){log("Contact Picker unavailable here");return;}',
-'    try{',
-'      var r=await navigator.contacts.select(["name","email"],{multiple:true});',
-'      var shape=r.map(function(c){return Object.fromEntries(Object.entries(c).map(function(e){return [e[0],Array.isArray(e[1])?e[1].length+" value(s)":typeof e[1]];}));});',
-'      log("select() -> "+r.length+" contact(s): "+JSON.stringify(shape));',
-'    }catch(e){log(e.name+": "+e.message);}',
+'  function bind(id,fn){var el=document.getElementById(id);if(el){el.addEventListener("click",fn);}}',
+'  bind("bc_contacts",async function(){',
+'    if(!(navigator.contacts&&navigator.contacts.select)){log("contacts unavailable here");return;}',
+'    try{var r=await navigator.contacts.select(["name","email"],{multiple:true});log("contacts -> "+r.length+" contact(s) (redacted)");}catch(e){log("contacts: "+e.name+": "+e.message);}',
+'  });',
+'  bind("bc_bt",async function(){',
+'    if(!(navigator.bluetooth&&navigator.bluetooth.requestDevice)){log("bluetooth unavailable here");return;}',
+'    try{await navigator.bluetooth.requestDevice({acceptAllDevices:true});log("bluetooth -> device selected (redacted)");}catch(e){log("bluetooth: "+e.name+": "+e.message);}',
+'  });',
+'  bind("bc_usb",async function(){',
+'    if(!(navigator.usb&&navigator.usb.requestDevice)){log("usb unavailable here");return;}',
+'    try{await navigator.usb.requestDevice({filters:[]});log("usb -> device selected (redacted)");}catch(e){log("usb: "+e.name+": "+e.message);}',
 '  });',
 '})();',
 '<\/script></body>'
