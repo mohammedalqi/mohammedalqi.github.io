@@ -75,6 +75,35 @@ Watch what origin each dialog header shows vs. the child's real origin/URL repor
   </ul>
 </div>
 
+<h2 style="font-size:1.05rem;margin-top:1.6rem">Test C — Navigation race & modal lifecycle</h2>
+<p class="muted" style="font-size:14px">Opens a child; you tap <b>Start</b> to fire the chooser, then the child auto-navigates to the target after a delay.
+Watch whether the modal <b>dismisses</b>, <b>persists</b> (and what origin it then shows), and whether the promise resolves <em>after</em> navigation.</p>
+<div class="card">
+  <label>Chooser:
+    <select id="raceChooser">
+      <option value="bluetooth">Bluetooth</option>
+      <option value="usb">USB</option>
+      <option value="contacts">Contacts</option>
+    </select>
+  </label>
+  <label style="display:block;margin-top:.5rem">Navigate to: <input id="raceTarget" value="https://www.google.com" style="width:60%"></label>
+  <label style="display:block;margin-top:.5rem">Delay: <input id="raceDelay" type="number" value="1500" style="width:6rem"> ms</label>
+  <button data-race="go" style="margin-top:.6rem">Open race child</button>
+  <ul style="font-size:13px;margin:.3rem 0;padding-left:1.2rem">
+    <li><b>Watch:</b> does the modal dismiss on navigation, persist over the target page, or change its origin?</li>
+    <li><b>Jackpot:</b> a "RESOLVED after navigation" log = a device approved for the opener delivered into the target context.</li>
+    <li>Cross-origin targets (google.com) can't report back after navigating — use a <em>same-origin</em> target (e.g. this page's URL) to observe post-navigation resolution in the log.</li>
+  </ul>
+</div>
+
+<h2 style="font-size:1.05rem;margin-top:1.6rem">Test D — Side-by-side / split view (desktop)</h2>
+<p class="muted" style="font-size:14px">Opens a trusted site in a second window on the right half of the screen. Then trigger a chooser in <b>this</b> window and observe
+whether the modal is bound to this window or appears associated with the other. <b class="no">Note:</b> desktop uses a different chooser UI than Android's <code>ItemChooserDialog</code>.</p>
+<div class="card">
+  <label>Second window URL: <input id="sideUrl" value="https://www.google.com" style="width:60%"></label>
+  <button data-side="open" style="margin-top:.6rem">Open second window (right half)</button>
+</div>
+
 <h2 style="font-size:1.05rem;margin-top:1.6rem">Test B — Bidi rendering probe (local proxy)</h2>
 <p class="muted" style="font-size:14px"><b class="no">Proxy only:</b> injecting bidi into the <em>real</em> picker label needs hosting under a bidi hostname.
 This shows how <em>this device's</em> text engine reorders the string — a pre-filter for which candidates to host.</p>
@@ -229,6 +258,73 @@ function openChild(kind) {
 document.addEventListener('click', (e) => {
   const k = e.target.closest('[data-child]')?.dataset.child;
   if (k) openChild(k);
+});
+
+/* ===== Test C: navigation race & modal lifecycle ===== */
+bc.addEventListener('message', (ev) => {
+  if (ev.data && ev.data.type === 'race') log(`RACE → ${ev.data.msg}`);
+});
+
+function buildRaceChild(chooser, target, delay) {
+  // Child needs a tap (user activation) to call requestDevice; it then schedules
+  // a navigation to `target` after `delay`ms while the chooser modal is up.
+  return [
+    '<!doctype html><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    '<body style="font:16px system-ui;padding:1rem">',
+    '<h2>Race child</h2>',
+    '<div>origin: <b id="o"></b></div>',
+    '<p style="opacity:.7;font-size:13px">Tap Start, then watch the modal as the page navigates to <b id="tgt"></b> after ' + Number(delay) + 'ms.</p>',
+    '<button id="s" style="font:600 17px system-ui;padding:.9rem;width:100%">Start race (' + chooser + ')</button>',
+    '<pre id="l" style="white-space:pre-wrap;word-break:break-word"></pre>',
+    '<script>',
+    '(function(){',
+    '  var bc=new BroadcastChannel("picker-poc");',
+    '  var o=location.origin;document.getElementById("o").textContent=o;',
+    '  var chooser=' + JSON.stringify(chooser) + ',target=' + JSON.stringify(String(target)) + ',delay=' + Number(delay) + ';',
+    '  document.getElementById("tgt").textContent=target;',
+    '  bc.postMessage({type:"child-origin",origin:o,href:location.href});',
+    '  function rep(m){var l=document.getElementById("l");if(l){l.textContent=m+"\\n"+l.textContent;}bc.postMessage({type:"race",msg:m});}',
+    '  document.getElementById("s").addEventListener("click",function(){',
+    '    var t0=Date.now();rep("start; navigating in "+delay+"ms");',
+    '    var p;',
+    '    try{',
+    '      if(chooser==="bluetooth")p=navigator.bluetooth.requestDevice({acceptAllDevices:true});',
+    '      else if(chooser==="usb")p=navigator.usb.requestDevice({filters:[]});',
+    '      else p=navigator.contacts.select(["name","email"],{multiple:true});',
+    '    }catch(e){rep("call threw: "+e.name+": "+e.message);return;}',
+    '    p.then(function(){rep("RESOLVED at +"+(Date.now()-t0)+"ms; origin now "+location.origin);})',
+    '     .catch(function(e){rep("rejected at +"+(Date.now()-t0)+"ms: "+e.name+": "+e.message);});',
+    '    setTimeout(function(){rep("NAVIGATING to "+target+" at +"+(Date.now()-t0)+"ms");location.href=target;},delay);',
+    '  });',
+    '})();',
+    '<\/script></body>'
+  ].join('');
+}
+
+function openRace() {
+  const chooser = $('#raceChooser').value;
+  const target = $('#raceTarget').value;
+  const delay = parseInt($('#raceDelay').value, 10) || 1500;
+  const w = window.open('about:blank', '_blank');
+  if (!w) { log('race popup blocked — allow popups and retry.'); return; }
+  w.document.open(); w.document.write(buildRaceChild(chooser, target, delay)); w.document.close();
+  log(`race child opened (${chooser} → navigate to ${target} after ${delay}ms). Tap Start inside it.`);
+}
+
+/* ===== Test D: side-by-side / split view (desktop) ===== */
+function openSideBySide() {
+  const url = $('#sideUrl').value;
+  const sw = screen.availWidth, sh = screen.availHeight;
+  const features = `popup=yes,left=${Math.floor(sw / 2)},top=0,width=${Math.floor(sw / 2)},height=${sh}`;
+  const win = window.open(url, '_blank', features);
+  if (!win) { log('second window blocked — allow popups and retry.'); return; }
+  log(`opened ${url} on the right half. Now trigger a chooser in THIS window; observe which window the modal binds to.`);
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-race]')) openRace();
+  else if (e.target.closest('[data-side]')) openSideBySide();
 });
 
 /* ===== Test B: local bidi rendering probe ===== */
