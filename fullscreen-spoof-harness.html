@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fullscreen Anti-Spoof Test Harness (research)</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 1rem; }
+  h1 { font-size: 1.2rem; } h2 { font-size: 1rem; }
+  .note { background: #8881; border-left: 3px solid #b3261e; padding: .6rem .8rem; border-radius: 6px; font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .4rem 0; }
+  label { font-size: 14px; }
+  button { font: 600 14px system-ui; padding: .55rem .8rem; cursor: pointer; border-radius: 7px; }
+  input[type=text], input[type=number], select { font: inherit; padding: .35rem; }
+  code { background: #8882; padding: .1rem .3rem; border-radius: 3px; }
+  pre { background: #8881; padding: .6rem; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, monospace; max-height: 30vh; overflow: auto; }
+
+  /* The element we fullscreen. */
+  #stage { background: #101418; color: #e8e8e8; border-radius: 10px; padding: 0; margin-top: 1rem; min-height: 240px; position: relative; overflow: hidden; }
+  #stage.fs { border-radius: 0; }
+
+  /* Mock browser chrome — MEASUREMENT AID ONLY, clearly badged. */
+  #mockbar { display: none; position: absolute; top: 0; left: 0; right: 0; height: 52px;
+    background: #f1f3f4; color: #202124; align-items: center; gap: 8px; padding: 0 12px; font-size: 14px; }
+  #mockbar.on { display: flex; }
+  #mockbar .url { flex: 1; background: #fff; border-radius: 16px; padding: 6px 12px; color: #202124; border: 1px solid #dadce0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #mockbar .lock { opacity: .7; }
+  #mockbar .badge { background: #b3261e; color: #fff; font-weight: 700; font-size: 10px; padding: 2px 6px; border-radius: 4px; letter-spacing: .05em; }
+
+  #stagebody { padding: 64px 1rem 1rem; }
+  #stage h2 { margin-top: 0; }
+  #stage .grid { display: flex; flex-wrap: wrap; gap: .4rem; }
+  #stage button { background: #2a2f36; color: #e8e8e8; border: 1px solid #3a4048; }
+  #stage button.exit { background: #b3261e; border-color: #b3261e; color: #fff; }
+  #watch { background: #1d2733; border: 1px solid #2a3a4d; border-radius: 8px; padding: .6rem .8rem; margin: .6rem 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Fullscreen Anti-Spoof Test Harness</h1>
+<p class="note"><b>Authorized security research / responsible disclosure only.</b> Tests whether Chrome's fullscreen disclosure bubble
+(<i>“Press Esc to exit full screen”</i>) can be suppressed, raced, or occluded by competing surfaces. The mock chrome is a
+clearly-badged <b>measurement aid</b>, not a deception payload — do not deploy this against users or impersonate a real site.</p>
+
+<h2>Setup</h2>
+<div class="row">
+  <label>Mock chrome URL: <input id="mockUrl" type="text" value="https://example.com" size="28"></label>
+  <label><input id="mockToggle" type="checkbox"> show mock bar in fullscreen</label>
+</div>
+<div class="row">
+  <label>Download burst count: <input id="dlCount" type="number" value="5" min="1" max="20" style="width:4rem"></label>
+</div>
+<div class="row">
+  <label><input id="autoFire" type="checkbox"> auto-fire surface on entering fullscreen</label>
+  <label>surface:
+    <select id="autoSurface">
+      <option value="download">download burst</option>
+      <option value="geo">geolocation</option>
+      <option value="cam">camera</option>
+      <option value="mic">microphone</option>
+      <option value="notif">notifications</option>
+      <option value="pointer">pointer lock</option>
+      <option value="keyboard">keyboard lock</option>
+      <option value="display">getDisplayMedia</option>
+      <option value="pip">picture-in-picture</option>
+    </select>
+  </label>
+  <label>delay: <input id="autoDelay" type="range" min="0" max="2000" value="50" step="10"><span id="autoDelayV">50</span>ms</label>
+</div>
+<div class="row">
+  <button id="enter">▶ Enter fullscreen</button>
+  <span style="font-size:13px;opacity:.75">Then fire surfaces from inside; watch whether the real disclosure bubble appears.</span>
+</div>
+
+<!-- Fullscreen target -->
+<div id="stage">
+  <div id="mockbar">
+    <span class="lock">🔒</span>
+    <span class="url" id="mockUrlText">https://example.com</span>
+    <span class="badge">MOCK · research aid</span>
+  </div>
+  <div id="stagebody">
+    <h2>Fullscreen stage</h2>
+    <div id="watch">
+      <b>Watch for:</b> the browser's real <i>“Press Esc to exit full screen”</i> bubble (usually top-center).
+      <b>Spoof condition =</b> it’s missing/suppressed while the mock bar is shown, or it’s replaced by a vaguer
+      “press Esc” message (download / keyboard-lock).
+    </div>
+    <div class="grid">
+      <button data-fire="download">⬇ Download burst</button>
+      <button data-fire="geo">📍 Geolocation</button>
+      <button data-fire="cam">🎥 Camera</button>
+      <button data-fire="mic">🎙️ Microphone</button>
+      <button data-fire="notif">🔔 Notifications</button>
+      <button data-fire="pointer">🖱️ Pointer lock</button>
+      <button data-fire="keyboard">⌨️ Keyboard lock</button>
+      <button data-fire="display">🖥️ getDisplayMedia</button>
+      <button data-fire="pip">🪟 Picture-in-Picture</button>
+      <button class="exit" id="exit">✕ Exit fullscreen + release locks</button>
+    </div>
+    <pre id="log"></pre>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const stage = $('#stage');
+function log(m){ const t=new Date().toISOString().slice(11,23); $('#log').textContent = `[${t}] ${m}\n` + $('#log').textContent; }
+
+// --- Mock bar wiring ---
+function syncMock(){
+  $('#mockUrlText').textContent = $('#mockUrl').value;
+  $('#mockbar').classList.toggle('on', $('#mockToggle').checked);
+}
+$('#mockUrl').addEventListener('input', syncMock);
+$('#mockToggle').addEventListener('change', syncMock);
+$('#autoDelay').addEventListener('input', () => $('#autoDelayV').textContent = $('#autoDelay').value);
+
+// --- Fullscreen ---
+$('#enter').addEventListener('click', async () => {
+  try { await stage.requestFullscreen(); }
+  catch (e) { log(`requestFullscreen: ${e.name}: ${e.message}`); }
+});
+document.addEventListener('fullscreenchange', () => {
+  const on = document.fullscreenElement === stage;
+  stage.classList.toggle('fs', on);
+  syncMock();
+  log('fullscreenchange → ' + (on ? 'ENTERED' : 'exited'));
+  if (on && $('#autoFire').checked) {
+    const surf = $('#autoSurface').value, delay = +$('#autoDelay').value;
+    log(`auto-fire "${surf}" in ${delay}ms (no fresh gesture — failures are informative)`);
+    setTimeout(() => fireSurface(surf), delay);
+  }
+});
+
+$('#exit').addEventListener('click', async () => {
+  try { navigator.keyboard && navigator.keyboard.unlock && navigator.keyboard.unlock(); } catch {}
+  try { document.exitPointerLock && document.exitPointerLock(); } catch {}
+  try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) { log('exit: ' + e.message); }
+});
+
+// --- Surfaces ---
+async function fireSurface(kind) {
+  try {
+    switch (kind) {
+      case 'download': {
+        const n = Math.max(1, Math.min(20, +$('#dlCount').value || 5));
+        for (let i = 0; i < n; i++) {
+          const a = document.createElement('a');
+          a.href = 'data:application/octet-stream;base64,VGVzdCBmaWxl'; // "Test file"
+          a.download = `harness-${Date.now()}-${i}.bin`;
+          document.body.appendChild(a); a.click(); a.remove();
+        }
+        log(`download burst: fired ${n} — watch if the download toast replaces the fullscreen bubble`);
+        break;
+      }
+      case 'geo':
+        log('geolocation: prompting');
+        navigator.geolocation.getCurrentPosition(() => log('geo: granted'), e => log('geo: ' + e.message), { timeout: 8000 });
+        break;
+      case 'cam': { const s = await navigator.mediaDevices.getUserMedia({ video: true }); s.getTracks().forEach(t => t.stop()); log('camera: granted then stopped'); break; }
+      case 'mic': { const s = await navigator.mediaDevices.getUserMedia({ audio: true }); s.getTracks().forEach(t => t.stop()); log('mic: granted then stopped'); break; }
+      case 'notif': { const p = await Notification.requestPermission(); log('notifications: ' + p); break; }
+      case 'pointer':
+        stage.requestPointerLock();
+        log('pointer lock requested — auto-releases in 3s (watch its "Press Esc to show cursor" bubble)');
+        setTimeout(() => { try { document.exitPointerLock(); } catch {} }, 3000);
+        break;
+      case 'keyboard':
+        if (!(navigator.keyboard && navigator.keyboard.lock)) { log('keyboard lock: API unavailable'); break; }
+        await navigator.keyboard.lock(['Escape']);
+        log('keyboard lock ON for Escape — exit bubble should change to "hold Esc". Auto-unlock in 6s.');
+        setTimeout(() => { try { navigator.keyboard.unlock(); log('keyboard unlocked'); } catch {} }, 6000);
+        break;
+      case 'display': {
+        const s = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        s.getTracks().forEach(t => t.stop());
+        log('getDisplayMedia: picker shown then stopped'); break;
+      }
+      case 'pip': {
+        if (!('documentPictureInPicture' in window)) { log('PiP: documentPictureInPicture unsupported'); break; }
+        const w = await documentPictureInPicture.requestWindow({ width: 340, height: 180 });
+        w.document.body.style.cssText = 'font:15px system-ui;margin:0';
+        w.document.body.innerHTML = '<div style="padding:1rem">PiP — floats above fullscreen with attacker-controlled content. Try covering the disclosure bubble.</div>';
+        log('PiP window opened'); break;
+      }
+    }
+  } catch (e) { log(`${kind}: ${e.name}: ${e.message}`); }
+}
+document.addEventListener('click', e => {
+  const k = e.target.closest('[data-fire]')?.dataset.fire;
+  if (k) fireSurface(k);
+});
+
+// Observe lock transitions too.
+document.addEventListener('pointerlockchange', () => log('pointerlockchange → ' + (document.pointerLockElement ? 'LOCKED' : 'released')));
+syncMock();
+</script>
+</body>
+</html>
