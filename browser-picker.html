@@ -3,172 +3,91 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contact Picker — Origin Rendering Harness</title>
+<title>Contact Picker Origin PoC</title>
 <style>
   :root { color-scheme: light dark; }
-  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 1rem; max-width: 960px; }
-  h1 { font-size: 1.25rem; } h2 { font-size: 1rem; margin-top: 1.6rem; border-bottom: 1px solid #8884; padding-bottom: .25rem; }
-  button { font: inherit; padding: .45rem .8rem; margin: .2rem .2rem .2rem 0; cursor: pointer; }
-  input, select { font: inherit; padding: .35rem; }
-  table { border-collapse: collapse; width: 100%; margin-top: .5rem; }
-  th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid #8883; vertical-align: top; font-size: 13px; }
-  th { font-weight: 600; }
-  code { background: #8882; padding: .1rem .3rem; border-radius: 3px; word-break: break-all; }
-  .cat { font-weight: 600; color: #6a5acd; }
-  .muted { opacity: .7; }
-  .warn { color: #b3261e; }
-  /* Mock Android picker label, mimicking ContactsPickerDialog header text */
-  #mock {
-    border: 1px solid #8886; border-radius: 8px; padding: 1rem; margin-top: .5rem;
-    max-width: 360px; background: #8881;
-  }
-  #mock .title { font-size: 18px; font-weight: 700; margin-bottom: .75rem; }
-  #mock .sub { font-size: 14px; }
-  #mock .origin { font-weight: 700; }
-  /* truncation variants */
-  .trunc-end   { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-  .trunc-none  { word-break: break-all; }
-  .controls label { display: inline-block; margin-right: 1rem; }
+  body { font: 16px/1.55 system-ui, sans-serif; margin: 0 auto; padding: 1.2rem; max-width: 640px; }
+  h1 { font-size: 1.3rem; }
+  button { font: 600 17px system-ui; padding: .9rem 1.2rem; width: 100%; margin: 1rem 0; cursor: pointer; border-radius: 8px; }
+  .card { border: 1px solid #8884; border-radius: 10px; padding: .9rem 1rem; margin: .8rem 0; }
+  .k { opacity: .65; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  .v { font-size: 17px; font-weight: 700; word-break: break-all; }
+  code { background: #8882; padding: .1rem .35rem; border-radius: 4px; word-break: break-all; }
+  .ok { color: #1a7f37; } .no { color: #b3261e; }
+  #log { background: #8881; border-radius: 8px; padding: .8rem; white-space: pre-wrap; word-break: break-word; min-height: 3rem; font: 13px/1.5 ui-monospace, monospace; }
+  ol { padding-left: 1.2rem; } li { margin: .3rem 0; }
 </style>
 </head>
 <body>
-<h1>Contact Picker — Origin Rendering Harness</h1>
-<p class="muted">Generates adversarial hostnames and previews how a fixed-width dialog label renders them.
-<strong class="warn">Pre-filter only:</strong> the real test requires actually <em>hosting</em> the page under each origin —
-Chromium derives the label from the committed origin via its own IDN/bidi formatter, which this page does <em>not</em> replicate.
-Use this to pick candidates worth registering/hosting, then confirm on-device.</p>
+<h1>Contact Picker — Origin Display PoC</h1>
 
-<h2>1. Custom host → punycode (uses the browser's real URL/IDNA parser)</h2>
-<div class="controls">
-  <input id="custom" size="48" placeholder="e.g. аccounts.google.com or a-very-long.sub.chain.example.com" value="аpple.com">
-  <button id="encode">Encode</button>
+<div class="card">
+  <div class="k">Live origin (committed)</div>
+  <div class="v" id="origin">…</div>
 </div>
-<table id="customOut"><tbody></tbody></table>
+<div class="card">
+  <div class="k">Label the picker SHOULD show</div>
+  <div class="v" id="expected">…</div>
+  <div class="k" style="margin-top:.6rem">Punycode / ASCII form</div>
+  <div class="v" id="puny" style="font-size:15px">…</div>
+</div>
+<div class="card">
+  <div class="k">Contact Picker API</div>
+  <div class="v" id="support">checking…</div>
+</div>
 
-<h2>2. Candidate generator</h2>
-<div class="controls">
-  <label>Brand to mimic: <input id="brand" size="20" value="google.com"></label>
-  <label>Attacker TLD: <input id="atld" size="14" value="attacker.tld"></label>
-  <button id="gen">Generate</button>
-</div>
-<table id="genOut">
-  <thead><tr><th>Category</th><th>Unicode (as typed/displayed)</th><th>Punycode (committed origin)</th><th>Spoof idea</th></tr></thead>
-  <tbody></tbody>
-</table>
+<button id="go">📇 Tap to open Contact Picker</button>
 
-<h2>3. Mock label preview</h2>
-<div class="controls">
-  <label>String: <input id="previewStr" size="40" value="accounts.google.com.attacker.tld"></label>
-  <label>Label width:
-    <select id="width">
-      <option>240</option><option selected>300</option><option>360</option><option>120</option>
-    </select>px</label>
-  <label>Truncation:
-    <select id="truncMode">
-      <option value="trunc-end" selected>ellipsis at end (nowrap)</option>
-      <option value="trunc-none">no truncation (wrap)</option>
-    </select>
-  </label>
+<div class="card">
+  <div class="k">Compare</div>
+  <ol>
+    <li>Read the <b>“should show”</b> value above.</li>
+    <li>Tap the button; read the bold origin in the picker header.</li>
+    <li>Open your address bar; read how the omnibox renders the same origin.</li>
+    <li><b>Finding =</b> picker header ≠ omnibox (e.g. picker shows a lookalike while omnibox shows <code>xn--…</code>), or picker hides the real registrable domain.</li>
+  </ol>
 </div>
-<div id="mock">
-  <div class="title">Pilih kontak / Select contact</div>
-  <div class="sub">Contacts you select will be shared with <span class="origin" id="mockOrigin"></span>.</div>
-</div>
-<p class="muted">Drag the width down to see what gets elided. If the registrable domain (eTLD+1) is the part that
-disappears while a trusted-looking prefix stays visible, that's a finding worth confirming on a real device.</p>
 
-<h2>Report checklist</h2>
-<pre>[ ] Hosted the page under the candidate origin (real DNS / GitHub Pages subdomain).
-[ ] Chrome Android: build version (chrome://version) ________  → label rendered as: ________
-[ ] Edge Android:   build version (edge://version)   ________  → label rendered as: ________
-[ ] Screenshot of the picker header on each browser.
-[ ] Compared against omnibox rendering of the same origin (match or mismatch?).
-[ ] Stated impact: which trusted origin a victim would believe they're sharing contacts with.</pre>
+<div class="k">Result log (contact values are redacted to shape only)</div>
+<div id="log"></div>
 
 <script>
 const $ = s => document.querySelector(s);
+function log(msg){ const t=new Date().toISOString().slice(11,23); $('#log').textContent = `[${t}] ${msg}\n` + $('#log').textContent; }
 
-// Use the browser's real URL parser for IDNA → punycode. This mirrors part of what
-// Chromium does before security-display formatting (though not the spoof-check elision).
-function toPunycode(host) {
+// Show the committed origin and its ASCII/punycode form (the string Chromium formats for the label).
+const host = location.hostname;
+$('#origin').textContent = location.origin;
+$('#expected').textContent = host;            // Unicode form, as you'd want it to read
+let puny = host;
+try { puny = new URL('https://' + host).hostname; } catch {}
+$('#puny').textContent = puny + (puny !== host ? '  (IDNA-converted — picker may show THIS instead)' : '  (no IDNA conversion)');
+
+// Feature detection
+const supported = !!(navigator.contacts && navigator.contacts.select);
+$('#support').innerHTML = supported
+  ? '<span class="ok">✓ supported</span>'
+  : '<span class="no">✗ not available here</span> (needs Android Chrome/Edge, HTTPS or localhost)';
+
+// The actual repro action.
+$('#go').addEventListener('click', async () => {
+  if (!supported) { log('Contact Picker unavailable in this browser/context.'); return; }
   try {
-    const u = new URL('https://' + host.trim().replace(/^https?:\/\//, ''));
-    return u.hostname;
-  } catch (e) { return '(invalid: ' + e.message + ')'; }
-}
-function row(cells) {
-  const tr = document.createElement('tr');
-  for (const c of cells) {
-    const td = document.createElement('td');
-    if (c && c.html) td.innerHTML = c.html; else td.textContent = c;
-    tr.appendChild(td);
+    const props = (navigator.contacts.getProperties)
+      ? await navigator.contacts.getProperties() : ['name', 'email'];
+    const result = await navigator.contacts.select(
+      props.filter(p => ['name','email','tel'].includes(p)),
+      { multiple: true }
+    );
+    // Redact: report only the SHAPE of returned data, never real values.
+    const shape = result.map(c => Object.fromEntries(
+      Object.entries(c).map(([k,v]) => [k, Array.isArray(v) ? v.length + ' value(s)' : typeof v])
+    ));
+    log(`select() returned ${result.length} contact(s): ` + JSON.stringify(shape));
+  } catch (e) {
+    log(`${e.name}: ${e.message}`);
   }
-  return tr;
-}
-
-// ---- 1. custom encode ----
-function encodeCustom() {
-  const host = $('#custom').value;
-  const puny = toPunycode(host);
-  const changed = puny.toLowerCase() !== host.trim().toLowerCase().replace(/^https?:\/\//, '');
-  const tb = $('#customOut').querySelector('tbody');
-  tb.innerHTML = '';
-  tb.appendChild(row([{ html: '<span class="cat">As displayed</span>' }, { html: '<code>' + escapeHtml(host) + '</code>' }]));
-  tb.appendChild(row([{ html: '<span class="cat">Committed origin</span>' },
-    { html: '<code>' + escapeHtml(puny) + '</code>' + (changed ? ' <span class="muted">(IDNA-converted)</span>' : '') }]));
-  tb.appendChild(row([{ html: '<span class="cat">Codepoints</span>' }, { html: codepoints(host) }]));
-}
-function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function codepoints(s){return [...s].map(ch=>{const cp=ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0');
-  const sus=ch.codePointAt(0)>0x7F; return `<code style="${sus?'color:#b3261e':''}">U+${cp}</code>`;}).join(' ');}
-
-// ---- 2. generator ----
-function generate() {
-  const brand = $('#brand').value.trim();
-  const atld = $('#atld').value.trim();
-  const brandHost = brand.split('.')[0]; // e.g. "google"
-  const homoglyphs = { a:'а', e:'е', o:'о', c:'с', p:'р', x:'х', i:'і' }; // Cyrillic lookalikes
-  function homoglyph(s){return [...s].map(c=>homoglyphs[c]||c).join('');}
-
-  const cands = [
-    ['Homograph (Cyrillic)', homoglyph(brand),
-      'Whole/mixed-script confusable; relies on IDN spoof-check gap.'],
-    ['Bidi / RTL override', brandHost + '‮' + 'moc.' + atld.split('.').slice(-1)[0],
-      'RLO char visually reverses trailing chars to mask the real registrable domain.'],
-    ['Long subdomain prefix', 'accounts.' + brand + '.' + atld,
-      'If label truncates the END, the trusted prefix stays and attacker eTLD+1 is hidden.'],
-    ['Deep subdomain chain', ('a'.repeat(40)) + '.' + brand + '.' + atld,
-      'Overflow the fixed-width label so the meaningful suffix is elided off-screen.'],
-    ['Trailing-dot / FQDN', brand + '.',
-      'Absolute FQDN form — does the dialog normalize it like the omnibox?'],
-    ['Mixed script + digit', brandHost.replace('o','0').replace('l','1') + '.' + atld,
-      'Leet substitution + lookalike to defeat naive comparison.'],
-    ['Zero-width injection', [...brandHost].join('​') + '.com',
-      'ZWSP between chars — rendered identically, different string.'],
-  ];
-  const tb = $('#genOut').querySelector('tbody'); tb.innerHTML = '';
-  for (const [cat, uni, idea] of cands) {
-    tb.appendChild(row([
-      { html: '<span class="cat">' + cat + '</span>' },
-      { html: '<code>' + escapeHtml(uni) + '</code><br>' + codepoints(uni) },
-      { html: '<code>' + escapeHtml(toPunycode(uni)) + '</code>' },
-      idea,
-    ]));
-  }
-}
-
-// ---- 3. mock preview ----
-function preview() {
-  const el = $('#mockOrigin');
-  el.textContent = $('#previewStr').value;
-  el.className = 'origin ' + $('#truncMode').value;
-  $('#mock').style.maxWidth = $('#width').value + 'px';
-}
-
-$('#encode').onclick = encodeCustom;
-$('#gen').onclick = generate;
-['#previewStr', '#width', '#truncMode'].forEach(s => $(s).addEventListener('input', preview));
-encodeCustom(); generate(); preview();
+});
 </script>
 </body>
 </html>
