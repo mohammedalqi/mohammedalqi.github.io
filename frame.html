@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>scheme-bypass iframe</title>
+</head>
+<body style="font:14px system-ui;padding:.5rem">
+<p>scheme-bypass iframe — building the URL and redirecting the top window…</p>
+<pre id="out" style="white-space:pre-wrap;word-break:break-word"></pre>
+<script src="common.js"></script>
+<script>
+  // This file must be hosted ON the lookalike origin so the blob:/filesystem:
+  // URL it creates inherits that origin. It runs inside a sandboxed iframe with
+  // allow-top-navigation and redirects the top window.
+  (function () {
+    var out = document.getElementById('out');
+    function report(m) { out.textContent += '\n' + m; }
+    var scheme = new URLSearchParams(location.search).get('scheme') || 'blob';
+    report('scheme = ' + scheme + ' ; this frame origin = ' + location.origin);
+    if (scheme === 'filesystem') {
+      navViaFilesystem(top, report);
+    } else {
+      try { navViaBlob(top); report('requested blob: top-nav'); }
+      catch (e) { report('blob: top-nav blocked: ' + e.name + ': ' + e.message); }
+    }
+  })();
+</script>
+</body>
+</html>
