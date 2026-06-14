@@ -104,6 +104,25 @@ whether the modal is bound to this window or appears associated with the other. 
   <button data-side="open" style="margin-top:.6rem">Open second window (right half)</button>
 </div>
 
+<h2 style="font-size:1.05rem;margin-top:1.6rem">Test E — Surface anchoring (desktop): which window owns the UI?</h2>
+<p class="muted" style="font-size:14px">Open the side-by-side window first (Test D). Then fire each surface here from <b>this</b> (attacker) window and watch which window the prompt/UI binds to.
+<b class="no">Camera/mic will prompt and briefly activate; tracks are stopped immediately.</b></p>
+<div class="card">
+  <button data-surf="geo">📍 Geolocation</button>
+  <button data-surf="cam">🎥 Camera</button>
+  <button data-surf="mic">🎙️ Microphone</button>
+  <button data-surf="notif">🔔 Notifications</button>
+  <button data-surf="download">⬇️ Download file</button>
+  <button data-surf="pip">🪟 Picture-in-Picture (floating overlay)</button>
+  <button data-surf="fs">⛶ Fullscreen</button>
+  <button data-surf="alert">💬 JS alert</button>
+  <div class="k" style="margin-top:.6rem">Finding</div>
+  <ul style="font-size:13px;margin:.3rem 0;padding-left:1.2rem">
+    <li>A surface that renders <b>floating/centered/app-modal</b> and not clearly bound to this window = candidate.</li>
+    <li><b>PiP</b> opens an always-on-top window with attacker-controlled content — the real overlay primitive; try positioning it over the other window.</li>
+  </ul>
+</div>
+
 <h2 style="font-size:1.05rem;margin-top:1.6rem">Test B — Bidi rendering probe (local proxy)</h2>
 <p class="muted" style="font-size:14px"><b class="no">Proxy only:</b> injecting bidi into the <em>real</em> picker label needs hosting under a bidi hostname.
 This shows how <em>this device's</em> text engine reorders the string — a pre-filter for which candidates to host.</p>
@@ -325,6 +344,61 @@ function openSideBySide() {
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-race]')) openRace();
   else if (e.target.closest('[data-side]')) openSideBySide();
+});
+
+/* ===== Test E: surface anchoring ===== */
+async function fireSurface(kind) {
+  try {
+    switch (kind) {
+      case 'geo':
+        log('geo: prompt firing — note which window it binds to');
+        navigator.geolocation.getCurrentPosition(
+          () => log('geo: granted'),
+          (e) => log('geo: ' + e.message),
+          { timeout: 8000 });
+        break;
+      case 'cam': {
+        const s = await navigator.mediaDevices.getUserMedia({ video: true });
+        s.getTracks().forEach(t => t.stop());
+        log('camera: granted then stopped'); break;
+      }
+      case 'mic': {
+        const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+        s.getTracks().forEach(t => t.stop());
+        log('mic: granted then stopped'); break;
+      }
+      case 'notif': {
+        const p = await Notification.requestPermission();
+        log('notifications: ' + p); break;
+      }
+      case 'download': {
+        const blob = new Blob(['surface anchoring test ' + Date.now()], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'anchor-test.txt';
+        document.body.appendChild(a); a.click(); a.remove();
+        log('download: triggered — note which window shows the download UI'); break;
+      }
+      case 'pip': {
+        if (!('documentPictureInPicture' in window)) { log('PiP: documentPictureInPicture unsupported here'); break; }
+        const w = await documentPictureInPicture.requestWindow({ width: 340, height: 190 });
+        w.document.body.style.cssText = 'font:16px system-ui;margin:0';
+        w.document.body.innerHTML =
+          '<div style="padding:1rem">PiP window — always-on-top, minimal chrome, content fully attacker-controlled. ' +
+          'Drag it over the other window: this is the overlay primitive.</div>';
+        log('PiP: floating window opened — try positioning it over the google.com window'); break;
+      }
+      case 'fs':
+        await document.documentElement.requestFullscreen();
+        log('fullscreen: entered (press Esc to exit)'); break;
+      case 'alert':
+        log('alert: firing (tab-modal; shows origin)');
+        alert('Anchoring test from ' + location.origin); break;
+    }
+  } catch (e) { log(`${kind}: ${e.name}: ${e.message}`); }
+}
+document.addEventListener('click', (e) => {
+  const s = e.target.closest('[data-surf]')?.dataset.surf;
+  if (s) fireSurface(s);
 });
 
 /* ===== Test B: local bidi rendering probe ===== */
